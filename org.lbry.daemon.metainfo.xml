@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2025 LBRY Foundation -->
+<component type="console-application">
+    <id>org.lbry.daemon</id>
+    <metadata_license>MIT</metadata_license>
+    <project_license>MIT</project_license>
+    <name>LBRY Daemon</name>
+    <summary>LBRY Command Line Interface</summary>
+    <developer id="org.lbry">
+        <name>LBRY Foundation</name>
+    </developer>
+    <description><p>The LBRY Daemon.</p></description>
+    <provides>
+        <binary>lbryd</binary>
+    </provides>
+    <project_group>LBRY</project_group>
+    <url type="bugtracker">https://github.com/LBRYFoundation/lbry-daemon/issues</url>
+    <url type="homepage">https://lbry.org</url>
+    <url type="donation">https://lbry.org/#donate</url>
+    <url type="vcs-browser">https://github.com/LBRYFoundation/lbry-daemon</url>
+    <requires>
+        <control>keyboard</control>
+    </requires>
+    <content_rating type="oars-1.0"/>
+    <releases/>
+</component>

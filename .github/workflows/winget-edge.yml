@@ -1,0 +1,27 @@
+name: Snapcraft Edge
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snapcore/action-build@v1
+        id: build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snap-packages.zip
+          path: ./*.snap
+#      - uses: snapcore/action-publish@v1
+#        env:
+#          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+#        with:
+#          snap: ${{ steps.build.outputs.snap }}
+#          release: edge
+      - name: Upload
+        run: for f in $(ls *.snap); do snapcraft upload --release=edge $f; done
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

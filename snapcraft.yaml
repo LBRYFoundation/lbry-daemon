@@ -1,0 +1,55 @@
+name: lbryd
+title: LBRY Daemon
+type: app
+base: core24
+confinement: strict
+version: master
+summary: LBRY Command Line Interface
+description: The LBRY Daemon.
+license: MIT
+website: https://lbry.org
+source-code: https://github.com/LBRYFoundation/lbry-daemon
+issues:
+  - https://github.com/LBRYFoundation/lbry-daemon/issues
+contact: board@lbry.org
+donation:
+  - https://lbry.org/#donation
+
+apps:
+  lbryd:
+    command: bin/lbryd
+    plugs:
+      - network
+
+parts:
+  lbryd:
+    plugin: go
+    source: .
+    build-snaps: [go]
+    override-build: go build -o ${CRAFT_PART_INSTALL}/bin/lbryd
+
+platforms:
+  amd64:
+    build-on: amd64
+    build-for: amd64
+  arm64:
+    build-on: amd64
+    build-for: arm64
+  armhf:
+    build-on: amd64
+    build-for: armhf
+  i386:
+    build-on: amd64
+    build-for: i386
+#  powerpc:
+#    build-on: amd64
+#    build-for: powerpc
+  ppc64el:
+    build-on: amd64
+    build-for: ppc64el
+  riscv64:
+    build-on: amd64
+    build-for: riscv64
+  s390x:
+    build-on: amd64
+    build-for: s390x
