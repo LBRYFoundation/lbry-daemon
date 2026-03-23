@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime/debug"
 	"strings"
 )
 
@@ -18,11 +19,16 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if strings.EqualFold(req.Method, "POST") {
-		body, _ := ioutil.ReadAll(req.Body)
+		var messageBatch []map[string]any
 		var message map[string]any
+
+		body, _ := ioutil.ReadAll(req.Body)
+
+		errBatch := json.Unmarshal(body, &messageBatch)
 		err := json.Unmarshal(body, &message)
-		if err != nil {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+
+		if errBatch != nil && err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			resp, _ := json.Marshal(map[string]any{
 				"jsonrpc": "2.0",
 				"error": map[string]any{
@@ -33,6 +39,19 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprint(w, string(resp))
 			return
 		}
+		if messageBatch != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			resp, _ := json.Marshal(map[string]any{
+				"jsonrpc": "2.0",
+				"error": map[string]any{
+					"code":    -32700,
+					"message": "Batches are not supported",
+				},
+			})
+			fmt.Fprint(w, string(resp))
+			return
+		}
+
 		handleJSONRPCMessage(w, message)
 		return
 	}
@@ -49,5 +68,49 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 }
 
 func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
-	fmt.Fprintf(w, "MSG = %v", message)
+	if message["method"] == "status" {
+		handleJSONRPCMessageStatus(w)
+		return
+	}
+	if message["method"] == "version" {
+		handleJSONRPCMessageVersion(w)
+		return
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
+	resp, _ := json.Marshal(map[string]any{
+		"jsonrpc": "2.0",
+		"error": map[string]any{
+			"code":    -32601,
+			"message": "Unknown JSON-RPC method.",
+		},
+	})
+	fmt.Fprint(w, string(resp))
+}
+
+func handleJSONRPCMessageStatus(w http.ResponseWriter) {
+	resp, _ := json.Marshal(map[string]any{
+		"jsonrpc": "2.0",
+		"result":  map[string]any{},
+	})
+	fmt.Fprint(w, string(resp))
+}
+
+func handleJSONRPCMessageVersion(w http.ResponseWriter) {
+	info, _ := debug.ReadBuildInfo()
+
+	resp, _ := json.Marshal(map[string]any{
+		"jsonrpc": "2.0",
+		"result": map[string]any{
+			"build":           nil,
+			"lbrynet_version": nil,
+			"os_release":      nil,
+			"os_system":       nil,
+			"platform":        nil,
+			"processor":       nil,
+			"python_version":  nil,
+			"version":         info.Main.Version,
+		},
+	})
+	fmt.Fprint(w, string(resp))
 }
