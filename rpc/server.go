@@ -62,97 +62,97 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 }
 
 var handlers = map[string]func(http.ResponseWriter, any){
-	"account_add":             handleAccountAdd,
-	"account_balance":         handleAccountBalance,
-	"account_create":          handleAccountCreate,
-	"account_deposit":         handleAccountDeposit,
-	"account_fund":            handleAccountFund,
-	"account_list":            handleAccountList,
-	"account_max_address_gap": handleAccountMaxAddressGap,
-	"account_remove":          handleAccountRemove,
-	"account_send":            handleAccountSend,
-	"account_set":             handleAccountSet,
-	"address_is_mine":         handleAddressIsMine,
-	"address_list":            handleAddressList,
-	"address_unused":          handleAddressUnused,
-	"blob_announce":           handleBlobAnnounce,
-	"blob_clean":              handleBlobClean,
-	"blob_delete":             handleBlobDelete,
-	"blob_get":                handleBlobGet,
-	"blob_list":               handleBlobList,
-	"blob_reflect":            handleBlobReflect,
-	"blob_reflect_all":        handleBlobReflectAll,
-	"channel_abandon":         handleChannelAbandon,
-	"channel_create":          handleChannelCreate,
-	"channel_list":            handleChannelList,
-	"channel_sign":            handleChannelSign,
-	"channel_update":          handleChannelUpdate,
-	"claim_list":              handleClaimList,
-	"claim_search":            handleClaimSearch,
-	"collection_abandon":      handleCollectionAbandon,
-	"collection_create":       handleCollectionCreate,
-	"collection_list":         handleCollectionList,
-	"collection_resolve":      handleCollectionResolve,
-	"collection_update":       handleCollectionUpdate,
-	"ffmpeg_find":             handleFfmpegFind,
-	"file_delete":             handleFileDelete,
-	"file_list":               handleFileList,
-	"file_reflect":            handleFileReflect,
-	"file_save":               handleFileSave,
-	"file_set_status":         handleFileSetStatus,
-	"get":                     handleGet,
-	"peer_list":               handlePeerList,
-	"peer_ping":               handlePeerPing,
-	"preference_get":          handlePreferenceGet,
-	"preference_set":          handlePreferenceSet,
-	"publish":                 handlePublish,
-	"purchase_create":         handlePurchaseCreate,
-	"purchase_list":           handlePurchaseList,
-	"resolve":                 handleResolve,
-	"routing_table_get":       handleRoutingTableGet,
-	"settings_clear":          handleSettingsClear,
-	"settings_get":            handleSettingsGet,
-	"settings_set":            handleSettingsSet,
-	"status":                  handleStatus,
-	"stop":                    handleStop,
-	"stream_abandon":          handleStreamAbandon,
-	"stream_cost_estimate":    handleStreamCostEstimate,
-	"stream_create":           handleStreamCreate,
-	"stream_list":             handleStreamList,
-	"stream_repost":           handleStreamRepost,
-	"stream_update":           handleStreamUpdate,
-	"support_abandon":         handleSupportAbandon,
-	"support_create":          handleSupportCreate,
-	"support_list":            handleSupportList,
-	"support_sum":             handleSupportSum,
-	"sync_apply":              handleSyncApply,
-	"sync_hash":               handleSyncHash,
-	"tracemalloc_disable":     handleTracemallocDisable,
-	"tracemalloc_enable":      handleTracemallocEnable,
-	"tracemalloc_top":         handleTracemallocTop,
-	"transaction_list":        handleTransactionList,
-	"transaction_show":        handleTransactionShow,
-	"txo_list":                handleTxoList,
-	"txo_plot":                handleTxoPlot,
-	"txo_spend":               handleTxoSpend,
-	"txo_sum":                 handleTxoSum,
-	"utxo_list":               handleUtxoList,
-	"utxo_release":            handleUtxoRelease,
-	"version":                 handleVersion,
-	"wallet_add":              handleWalletAdd,
-	"wallet_balance":          handleWalletBalance,
-	"wallet_create":           handleWalletCreate,
-	"wallet_decrypt":          handleWalletDecrypt,
-	"wallet_encrypt":          handleWalletEncrypt,
-	"wallet_export":           handleWalletExport,
-	"wallet_import":           handleWalletImport,
-	"wallet_list":             handleWalletList,
-	"wallet_lock":             handleWalletLock,
-	"wallet_reconnect":        handleWalletReconnect,
-	"wallet_remove":           handleWalletRemove,
-	"wallet_send":             handleWalletSend,
-	"wallet_status":           handleWalletStatus,
-	"wallet_unlock":           handleWalletUnlock,
+	"account_add":             handleJSONRPCMessageAccountAdd,
+	"account_balance":         handleJSONRPCMessageAccountBalance,
+	"account_create":          handleJSONRPCMessageAccountCreate,
+	"account_deposit":         handleJSONRPCMessageAccountDeposit,
+	"account_fund":            handleJSONRPCMessageAccountFund,
+	"account_list":            handleJSONRPCMessageAccountList,
+	"account_max_address_gap": handleJSONRPCMessageAccountMaxAddressGap,
+	"account_remove":          handleJSONRPCMessageAccountRemove,
+	"account_send":            handleJSONRPCMessageAccountSend,
+	"account_set":             handleJSONRPCMessageAccountSet,
+	"address_is_mine":         handleJSONRPCMessageAddressIsMine,
+	"address_list":            handleJSONRPCMessageAddressList,
+	"address_unused":          handleJSONRPCMessageAddressUnused,
+	"blob_announce":           handleJSONRPCMessageBlobAnnounce,
+	"blob_clean":              handleJSONRPCMessageBlobClean,
+	"blob_delete":             handleJSONRPCMessageBlobDelete,
+	"blob_get":                handleJSONRPCMessageBlobGet,
+	"blob_list":               handleJSONRPCMessageBlobList,
+	"blob_reflect":            handleJSONRPCMessageBlobReflect,
+	"blob_reflect_all":        handleJSONRPCMessageBlobReflectAll,
+	"channel_abandon":         handleJSONRPCMessageChannelAbandon,
+	"channel_create":          handleJSONRPCMessageChannelCreate,
+	"channel_list":            handleJSONRPCMessageChannelList,
+	"channel_sign":            handleJSONRPCMessageChannelSign,
+	"channel_update":          handleJSONRPCMessageChannelUpdate,
+	"claim_list":              handleJSONRPCMessageClaimList,
+	"claim_search":            handleJSONRPCMessageClaimSearch,
+	"collection_abandon":      handleJSONRPCMessageCollectionAbandon,
+	"collection_create":       handleJSONRPCMessageCollectionCreate,
+	"collection_list":         handleJSONRPCMessageCollectionList,
+	"collection_resolve":      handleJSONRPCMessageCollectionResolve,
+	"collection_update":       handleJSONRPCMessageCollectionUpdate,
+	"ffmpeg_find":             handleJSONRPCMessageFfmpegFind,
+	"file_delete":             handleJSONRPCMessageFileDelete,
+	"file_list":               handleJSONRPCMessageFileList,
+	"file_reflect":            handleJSONRPCMessageFileReflect,
+	"file_save":               handleJSONRPCMessageFileSave,
+	"file_set_status":         handleJSONRPCMessageFileSetStatus,
+	"get":                     handleJSONRPCMessageGet,
+	"peer_list":               handleJSONRPCMessagePeerList,
+	"peer_ping":               handleJSONRPCMessagePeerPing,
+	"preference_get":          handleJSONRPCMessagePreferenceGet,
+	"preference_set":          handleJSONRPCMessagePreferenceSet,
+	"publish":                 handleJSONRPCMessagePublish,
+	"purchase_create":         handleJSONRPCMessagePurchaseCreate,
+	"purchase_list":           handleJSONRPCMessagePurchaseList,
+	"resolve":                 handleJSONRPCMessageResolve,
+	"routing_table_get":       handleJSONRPCMessageRoutingTableGet,
+	"settings_clear":          handleJSONRPCMessageSettingsClear,
+	"settings_get":            handleJSONRPCMessageSettingsGet,
+	"settings_set":            handleJSONRPCMessageSettingsSet,
+	"status":                  handleJSONRPCMessageStatus,
+	"stop":                    handleJSONRPCMessageStop,
+	"stream_abandon":          handleJSONRPCMessageStreamAbandon,
+	"stream_cost_estimate":    handleJSONRPCMessageStreamCostEstimate,
+	"stream_create":           handleJSONRPCMessageStreamCreate,
+	"stream_list":             handleJSONRPCMessageStreamList,
+	"stream_repost":           handleJSONRPCMessageStreamRepost,
+	"stream_update":           handleJSONRPCMessageStreamUpdate,
+	"support_abandon":         handleJSONRPCMessageSupportAbandon,
+	"support_create":          handleJSONRPCMessageSupportCreate,
+	"support_list":            handleJSONRPCMessageSupportList,
+	"support_sum":             handleJSONRPCMessageSupportSum,
+	"sync_apply":              handleJSONRPCMessageSyncApply,
+	"sync_hash":               handleJSONRPCMessageSyncHash,
+	"tracemalloc_disable":     handleJSONRPCMessageTracemallocDisable,
+	"tracemalloc_enable":      handleJSONRPCMessageTracemallocEnable,
+	"tracemalloc_top":         handleJSONRPCMessageTracemallocTop,
+	"transaction_list":        handleJSONRPCMessageTransactionList,
+	"transaction_show":        handleJSONRPCMessageTransactionShow,
+	"txo_list":                handleJSONRPCMessageTxoList,
+	"txo_plot":                handleJSONRPCMessageTxoPlot,
+	"txo_spend":               handleJSONRPCMessageTxoSpend,
+	"txo_sum":                 handleJSONRPCMessageTxoSum,
+	"utxo_list":               handleJSONRPCMessageUtxoList,
+	"utxo_release":            handleJSONRPCMessageUtxoRelease,
+	"version":                 handleJSONRPCMessageVersion,
+	"wallet_add":              handleJSONRPCMessageWalletAdd,
+	"wallet_balance":          handleJSONRPCMessageWalletBalance,
+	"wallet_create":           handleJSONRPCMessageWalletCreate,
+	"wallet_decrypt":          handleJSONRPCMessageWalletDecrypt,
+	"wallet_encrypt":          handleJSONRPCMessageWalletEncrypt,
+	"wallet_export":           handleJSONRPCMessageWalletExport,
+	"wallet_import":           handleJSONRPCMessageWalletImport,
+	"wallet_list":             handleJSONRPCMessageWalletList,
+	"wallet_lock":             handleJSONRPCMessageWalletLock,
+	"wallet_reconnect":        handleJSONRPCMessageWalletReconnect,
+	"wallet_remove":           handleJSONRPCMessageWalletRemove,
+	"wallet_send":             handleJSONRPCMessageWalletSend,
+	"wallet_status":           handleJSONRPCMessageWalletStatus,
+	"wallet_unlock":           handleJSONRPCMessageWalletUnlock,
 }
 
 func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
@@ -179,42 +179,11 @@ func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
 	sendErrorResponse(w, -32601, "Unknown JSON-RPC method.")
 }
 
-func handleStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"jsonrpc": "2.0",
-		"result":  map[string]any{},
-	})
-}
-
-func handleStop(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "Shutting down")
-}
-
-func handleResolve(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "resolve not implemented"})
-}
-
-func handleGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "get not implemented"})
-}
-
-func handlePublish(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "publish not implemented"})
-}
-
-func handleAccountList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleAccountCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_create not implemented"})
-}
-
-func handleAccountAdd(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountAdd(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{"error": "account_add not implemented"})
 }
 
-func handleAccountBalance(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountBalance(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
 		"available": "0.0",
 		"reserved":  "0.0",
@@ -227,207 +196,99 @@ func handleAccountBalance(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleAccountSend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_send not implemented"})
+func handleJSONRPCMessageAccountCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "account_create not implemented"})
 }
 
-func handleAccountFund(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_fund not implemented"})
-}
-
-func handleAccountDeposit(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountDeposit(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{"error": "account_deposit not implemented"})
 }
 
-func handleAccountMaxAddressGap(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountFund(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "account_fund not implemented"})
+}
+
+func handleJSONRPCMessageAccountList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageAccountMaxAddressGap(w http.ResponseWriter, params any) {
 	sendResultResponse(w, 1)
 }
 
-func handleAccountRemove(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountRemove(w http.ResponseWriter, params any) {
 	sendResultResponse(w, true)
 }
 
-func handleAccountSet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountSend(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "account_send not implemented"})
+}
+
+func handleJSONRPCMessageAccountSet(w http.ResponseWriter, params any) {
 	sendResultResponse(w, true)
 }
 
-func handleAddressList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleAddressIsMine(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAddressIsMine(w http.ResponseWriter, params any) {
 	sendResultResponse(w, false)
 }
 
-func handleAddressUnused(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAddressList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageAddressUnused(w http.ResponseWriter, params any) {
 	sendResultResponse(w, "")
 }
 
-func handleChannelCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_create not implemented"})
-}
-
-func handleChannelUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_update not implemented"})
-}
-
-func handleChannelList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleChannelAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_abandon not implemented"})
-}
-
-func handleChannelSign(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_sign not implemented"})
-}
-
-func handleClaimList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"page":        1,
-		"page_size":   20,
-		"total_pages": 0,
-		"total_items": 0,
-		"items":       []any{},
-	})
-}
-
-func handleClaimSearch(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"page":        1,
-		"page_size":   20,
-		"total_pages": 0,
-		"total_items": 0,
-		"items":       []any{},
-	})
-}
-
-func handleCollectionList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleCollectionCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_create not implemented"})
-}
-
-func handleCollectionUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_update not implemented"})
-}
-
-func handleCollectionAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_abandon not implemented"})
-}
-
-func handleCollectionResolve(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_resolve not implemented"})
-}
-
-func handleFileList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleFileDelete(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "file_delete not implemented"})
-}
-
-func handleFileReflect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "file_reflect not implemented"})
-}
-
-func handleFileSave(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobAnnounce(w http.ResponseWriter, params any) {
 	sendResultResponse(w, true)
 }
 
-func handleFileSetStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleBlobList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleBlobGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "blob_get not implemented"})
-}
-
-func handleBlobAnnounce(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleBlobDelete(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleBlobReflect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleBlobReflectAll(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleBlobClean(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobClean(w http.ResponseWriter, params any) {
 	sendResultResponse(w, 0)
 }
 
-func handleStreamCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_create not implemented"})
-}
-
-func handleStreamUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_update not implemented"})
-}
-
-func handleStreamList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleStreamAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_abandon not implemented"})
-}
-
-func handleStreamRepost(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_repost not implemented"})
-}
-
-func handleStreamCostEstimate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, 0.0)
-}
-
-func handleSupportCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "support_create not implemented"})
-}
-
-func handleSupportAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "support_abandon not implemented"})
-}
-
-func handleSupportList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleSupportSum(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"support_amount": "0.0"})
-}
-
-func handleTransactionList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleTransactionShow(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "transaction_show not implemented"})
-}
-
-func handleUtxoList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handleUtxoRelease(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobDelete(w http.ResponseWriter, params any) {
 	sendResultResponse(w, true)
 }
 
-func handleTxoList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobGet(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "blob_get not implemented"})
+}
+
+func handleJSONRPCMessageBlobList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageBlobReflect(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageBlobReflectAll(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageChannelAbandon(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "channel_abandon not implemented"})
+}
+
+func handleJSONRPCMessageChannelCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "channel_create not implemented"})
+}
+
+func handleJSONRPCMessageChannelList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageChannelSign(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "channel_sign not implemented"})
+}
+
+func handleJSONRPCMessageChannelUpdate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "channel_update not implemented"})
+}
+
+func handleJSONRPCMessageClaimList(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
 		"page":        1,
 		"page_size":   20,
@@ -437,115 +298,109 @@ func handleTxoList(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleTxoSum(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
-		"amount":   "0.0",
-		"currency": "LBC",
+		"page":        1,
+		"page_size":   20,
+		"total_pages": 0,
+		"total_items": 0,
+		"items":       []any{},
 	})
 }
 
-func handleTxoSpend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "txo_spend not implemented"})
+func handleJSONRPCMessageCollectionAbandon(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "collection_abandon not implemented"})
 }
 
-func handleTxoPlot(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "txo_plot not implemented"})
+func handleJSONRPCMessageCollectionCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "collection_create not implemented"})
 }
 
-func handleWalletList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionList(w http.ResponseWriter, params any) {
 	sendResultResponse(w, []any{})
 }
 
-func handleWalletCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_create not implemented"})
+func handleJSONRPCMessageCollectionResolve(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "collection_resolve not implemented"})
 }
 
-func handleWalletAdd(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_add not implemented"})
+func handleJSONRPCMessageCollectionUpdate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "collection_update not implemented"})
 }
 
-func handleWalletBalance(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFfmpegFind(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
-		"available": "0.0",
-		"reserved":  "0.0",
-		"reserved_subtotals": map[string]any{
-			"claims":   "0.0",
-			"supports": "0.0",
-			"tips":     "0.0",
-		},
-		"total": "0.0",
+		"available":            false,
+		"which":                "",
+		"analyze_audio_volume": false,
 	})
 }
 
-func handleWalletSend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_send not implemented"})
+func handleJSONRPCMessageFileDelete(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "file_delete not implemented"})
 }
 
-func handleWalletEncrypt(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletDecrypt(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletLock(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletUnlock(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"connected":         false,
-		"encrypted":         false,
-		"locked":            true,
-		"items":             0,
-		"keys":              0,
-		"height":            0,
-		"wallet_db_version": 0,
-	})
-}
-
-func handleWalletExport(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "")
-}
-
-func handleWalletImport(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletRemove(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleWalletReconnect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
-}
-
-func handleRoutingTableGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "routing_table_get not implemented"})
-}
-
-func handlePeerList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileList(w http.ResponseWriter, params any) {
 	sendResultResponse(w, []any{})
 }
 
-func handlePeerPing(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileReflect(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "file_reflect not implemented"})
+}
+
+func handleJSONRPCMessageFileSave(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageFileSetStatus(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageGet(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "get not implemented"})
+}
+
+func handleJSONRPCMessagePeerList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessagePeerPing(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{"error": "peer_ping not implemented"})
 }
 
-func handleSyncApply(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "sync_apply not implemented"})
+func handleJSONRPCMessagePreferenceGet(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{})
 }
 
-func handleSyncHash(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "")
+func handleJSONRPCMessagePreferenceSet(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "preference_set not implemented"})
 }
 
-func handleSettingsGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePublish(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "publish not implemented"})
+}
+
+func handleJSONRPCMessagePurchaseCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "purchase_create not implemented"})
+}
+
+func handleJSONRPCMessagePurchaseList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "resolve not implemented"})
+}
+
+func handleJSONRPCMessageRoutingTableGet(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "routing_table_get not implemented"})
+}
+
+func handleJSONRPCMessageSettingsClear(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "settings_clear not implemented"})
+}
+
+func handleJSONRPCMessageSettingsGet(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
 		"share_usage_data":     true,
 		"download_timeout":     60,
@@ -584,51 +439,123 @@ func handleSettingsGet(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleSettingsSet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSettingsSet(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{"error": "settings_set not implemented"})
 }
 
-func handleSettingsClear(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "settings_clear not implemented"})
-}
-
-func handlePreferenceGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{})
-}
-
-func handlePreferenceSet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "preference_set not implemented"})
-}
-
-func handlePurchaseList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
-}
-
-func handlePurchaseCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "purchase_create not implemented"})
-}
-
-func handleFfmpegFind(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStatus(w http.ResponseWriter, params any) {
 	sendResultResponse(w, map[string]any{
-		"available":            false,
-		"which":                "",
-		"analyze_audio_volume": false,
+		"jsonrpc": "2.0",
+		"result":  map[string]any{},
 	})
 }
 
-func handleTracemallocDisable(w http.ResponseWriter, params any) {
-	sendResultResponse(w, nil)
+func handleJSONRPCMessageStop(w http.ResponseWriter, params any) {
+	sendResultResponse(w, "Shutting down")
 }
 
-func handleTracemallocEnable(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"tracing": true})
+func handleJSONRPCMessageStreamAbandon(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "stream_abandon not implemented"})
 }
 
-func handleTracemallocTop(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamCostEstimate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, 0.0)
+}
+
+func handleJSONRPCMessageStreamCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "stream_create not implemented"})
+}
+
+func handleJSONRPCMessageStreamList(w http.ResponseWriter, params any) {
 	sendResultResponse(w, []any{})
 }
 
-func handleVersion(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamRepost(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "stream_repost not implemented"})
+}
+
+func handleJSONRPCMessageStreamUpdate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "stream_update not implemented"})
+}
+
+func handleJSONRPCMessageSupportAbandon(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "support_abandon not implemented"})
+}
+
+func handleJSONRPCMessageSupportCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "support_create not implemented"})
+}
+
+func handleJSONRPCMessageSupportList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageSupportSum(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"support_amount": "0.0"})
+}
+
+func handleJSONRPCMessageSyncApply(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "sync_apply not implemented"})
+}
+
+func handleJSONRPCMessageSyncHash(w http.ResponseWriter, params any) {
+	sendResultResponse(w, "")
+}
+
+func handleJSONRPCMessageTracemallocDisable(w http.ResponseWriter, params any) {
+	sendResultResponse(w, nil)
+}
+
+func handleJSONRPCMessageTracemallocEnable(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"tracing": true})
+}
+
+func handleJSONRPCMessageTracemallocTop(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageTransactionList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageTransactionShow(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "transaction_show not implemented"})
+}
+
+func handleJSONRPCMessageTxoList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{
+		"page":        1,
+		"page_size":   20,
+		"total_pages": 0,
+		"total_items": 0,
+		"items":       []any{},
+	})
+}
+
+func handleJSONRPCMessageTxoPlot(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "txo_plot not implemented"})
+}
+
+func handleJSONRPCMessageTxoSpend(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "txo_spend not implemented"})
+}
+
+func handleJSONRPCMessageTxoSum(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{
+		"amount":   "0.0",
+		"currency": "LBC",
+	})
+}
+
+func handleJSONRPCMessageUtxoList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageUtxoRelease(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
 	info, _ := debug.ReadBuildInfo()
 
 	sendResultResponse(w, map[string]any{
@@ -644,4 +571,77 @@ func handleVersion(w http.ResponseWriter, params any) {
 			"version":         info.Main.Version,
 		},
 	})
+}
+
+func handleJSONRPCMessageWalletAdd(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "wallet_add not implemented"})
+}
+
+func handleJSONRPCMessageWalletBalance(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{
+		"available": "0.0",
+		"reserved":  "0.0",
+		"reserved_subtotals": map[string]any{
+			"claims":   "0.0",
+			"supports": "0.0",
+			"tips":     "0.0",
+		},
+		"total": "0.0",
+	})
+}
+
+func handleJSONRPCMessageWalletCreate(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "wallet_create not implemented"})
+}
+
+func handleJSONRPCMessageWalletDecrypt(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletEncrypt(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletExport(w http.ResponseWriter, params any) {
+	sendResultResponse(w, "")
+}
+
+func handleJSONRPCMessageWalletImport(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletList(w http.ResponseWriter, params any) {
+	sendResultResponse(w, []any{})
+}
+
+func handleJSONRPCMessageWalletLock(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletReconnect(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletRemove(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
+}
+
+func handleJSONRPCMessageWalletSend(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{"error": "wallet_send not implemented"})
+}
+
+func handleJSONRPCMessageWalletStatus(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{
+		"connected":         false,
+		"encrypted":         false,
+		"locked":            true,
+		"items":             0,
+		"keys":              0,
+		"height":            0,
+		"wallet_db_version": 0,
+	})
+}
+
+func handleJSONRPCMessageWalletUnlock(w http.ResponseWriter, params any) {
+	sendResultResponse(w, true)
 }
