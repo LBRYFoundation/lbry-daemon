@@ -2,14 +2,31 @@ package rpc
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"strings"
 )
 
-func StartServer() {
-	http.HandleFunc("/", handleJSONRPC)
-	http.ListenAndServe(":5279", nil)
+func CreateServer() http.Server {
+	rpcServeMux := http.NewServeMux()
+	rpcServeMux.HandleFunc("/", handleJSONRPC)
+
+	return http.Server{Handler: rpcServeMux}
+}
+
+func StartServer(rpcServer http.Server, port int) {
+	listener, err := net.Listen("tcp", net.JoinHostPort("", strconv.Itoa(port)))
+	if err != nil && err != http.ErrServerClosed {
+		fmt.Println("Error when starting listening.")
+	}
+
+	err = rpcServer.Serve(listener)
+	if err != nil && err != http.ErrServerClosed {
+		fmt.Println("Error when starting RPC server.")
+	}
 }
 
 func sendResultResponse(w http.ResponseWriter, result any) {
@@ -35,7 +52,7 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	if strings.EqualFold(req.Method, "POST") {
 		var message any
 
-		err := json.NewDecoder(req.Body).Decode(message)
+		err := json.NewDecoder(req.Body).Decode(&message)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			sendErrorResponse(w, -32700, "Cannot parse invalid JSON data.")
@@ -447,10 +464,7 @@ func handleJSONRPCMessageSettingsSet(w http.ResponseWriter, params any) {
 }
 
 func handleJSONRPCMessageStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"jsonrpc": "2.0",
-		"result":  map[string]any{},
-	})
+	sendResultResponse(w, map[string]any{})
 }
 
 func handleJSONRPCMessageStop(w http.ResponseWriter, params any) {
@@ -562,17 +576,14 @@ func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
 	info, _ := debug.ReadBuildInfo()
 
 	sendResultResponse(w, map[string]any{
-		"jsonrpc": "2.0",
-		"result": map[string]any{
-			"build":           nil,
-			"lbrynet_version": nil,
-			"os_release":      nil,
-			"os_system":       nil,
-			"platform":        nil,
-			"processor":       nil,
-			"python_version":  nil,
-			"version":         info.Main.Version,
-		},
+		"build":           nil,
+		"lbrynet_version": nil,
+		"os_release":      nil,
+		"os_system":       nil,
+		"platform":        nil,
+		"processor":       nil,
+		"python_version":  nil,
+		"version":         info.Main.Version,
 	})
 }
 
