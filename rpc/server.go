@@ -200,379 +200,312 @@ func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
 }
 
 func handleJSONRPCMessageAccountAdd(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_add not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountBalance(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"available": "0.0",
-		"reserved":  "0.0",
-		"reserved_subtotals": map[string]any{
-			"claims":   "0.0",
-			"supports": "0.0",
-			"tips":     "0.0",
-		},
-		"total": "0.0",
-	})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountDeposit(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_deposit not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountFund(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_fund not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountMaxAddressGap(w http.ResponseWriter, params any) {
-	sendResultResponse(w, 1)
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountRemove(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountSend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "account_send not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAccountSet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAddressIsMine(w http.ResponseWriter, params any) {
-	sendResultResponse(w, false)
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAddressList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageAddressUnused(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "")
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageBlobAnnounce(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	// Relaxed
 }
 
 func handleJSONRPCMessageBlobClean(w http.ResponseWriter, params any) {
-	sendResultResponse(w, 0)
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageBlobDelete(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageBlobGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "blob_get not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageBlobList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageBlobReflect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageBlobReflectAll(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageChannelAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_abandon not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageChannelCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageChannelList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageChannelSign(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_sign not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageChannelUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "channel_update not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageClaimList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"page":        1,
-		"page_size":   20,
-		"total_pages": 0,
-		"total_items": 0,
-		"items":       []any{},
-	})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"page":        1,
-		"page_size":   20,
-		"total_pages": 0,
-		"total_items": 0,
-		"items":       []any{},
-	})
+	// Relaxed
 }
 
 func handleJSONRPCMessageCollectionAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_abandon not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageCollectionCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageCollectionList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageCollectionResolve(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_resolve not implemented"})
+	// Relaxed
 }
 
 func handleJSONRPCMessageCollectionUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "collection_update not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageFfmpegFind(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"available":            false,
-		"which":                "",
-		"analyze_audio_volume": false,
-	})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageFileDelete(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "file_delete not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageFileList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageFileReflect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "file_reflect not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageFileSave(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageFileSetStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "get not implemented"})
+	// Relaxed
 }
 
 func handleJSONRPCMessagePeerList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessagePeerPing(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "peer_ping not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessagePreferenceGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessagePreferenceSet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "preference_set not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessagePublish(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "publish not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessagePurchaseCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "purchase_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessagePurchaseList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "resolve not implemented"})
+	// Relaxed
 }
 
 func handleJSONRPCMessageRoutingTableGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "routing_table_get not implemented"})
+	// Relaxed
 }
 
 func handleJSONRPCMessageSettingsClear(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "settings_clear not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageSettingsGet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"share_usage_data":     true,
-		"download_timeout":     60,
-		"max_key_fee":          map[string]any{},
-		"search_timeout":       10,
-		"max_search_results":   25,
-		"filter_bluray":        false,
-		"currency":             "USD",
-		"exchange_rate_fiat":   "1.0",
-		"run_reflector_server": false,
-		"audio_bitrate":        128,
-		"video_bitrate":        1000,
-		"audio_normalize":      false,
-		"data_rate":            0.5,
-		"max_upload_rate":      0,
-		"max_download_rate":    0,
-		"upload_log":           true,
-		"upload_log_filename":  "",
-		"peer_port":            3333,
-		"dht_node_port":        4444,
-		"downloader_limit":     32,
-		"uploader_limit":       64,
-		"ui_theme":             "light",
-		"language":             "en",
-		"background_va":        false,
-		"ffmpeg_path":          "",
-		"bid_influence":        1.0,
-		"cache_time":           60,
-		"romfs_root":           "",
-		"romfs_level":          0,
-		"prometheus_port":      0,
-		"allowed_origin":       "",
-		"streaming_get":        true,
-		"streaming_port":       0,
-		"streaming_hosts":      []any{},
-	})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageSettingsSet(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "settings_set not implemented"})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageStatus(w http.ResponseWriter, params any) {
+	// Relaxed
 	sendResultResponse(w, map[string]any{})
 }
 
 func handleJSONRPCMessageStop(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "Shutting down")
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageStreamAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_abandon not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageStreamCostEstimate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, 0.0)
+	// Relaxed
 }
 
 func handleJSONRPCMessageStreamCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageStreamList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageStreamRepost(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_repost not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageStreamUpdate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "stream_update not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSupportAbandon(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "support_abandon not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSupportCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "support_create not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSupportList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSupportSum(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"support_amount": "0.0"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSyncApply(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "sync_apply not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageSyncHash(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "")
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageTracemallocDisable(w http.ResponseWriter, params any) {
-	sendResultResponse(w, nil)
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageTracemallocEnable(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"tracing": true})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageTracemallocTop(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
 func handleJSONRPCMessageTransactionList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageTransactionShow(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "transaction_show not implemented"})
+	// Relaxed
 }
 
 func handleJSONRPCMessageTxoList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"page":        1,
-		"page_size":   20,
-		"total_pages": 0,
-		"total_items": 0,
-		"items":       []any{},
-	})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageTxoPlot(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "txo_plot not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageTxoSpend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "txo_spend not implemented"})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageTxoSum(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"amount":   "0.0",
-		"currency": "LBC",
-	})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageUtxoList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageUtxoRelease(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
 func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
+	// Relaxed
 	info, _ := debug.ReadBuildInfo()
 
 	sendResultResponse(w, map[string]any{
@@ -588,74 +521,57 @@ func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
 }
 
 func handleJSONRPCMessageWalletAdd(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_add not implemented"})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletBalance(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"available": "0.0",
-		"reserved":  "0.0",
-		"reserved_subtotals": map[string]any{
-			"claims":   "0.0",
-			"supports": "0.0",
-			"tips":     "0.0",
-		},
-		"total": "0.0",
-	})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletCreate(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_create not implemented"})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletDecrypt(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletEncrypt(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletExport(w http.ResponseWriter, params any) {
-	sendResultResponse(w, "")
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletImport(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletList(w http.ResponseWriter, params any) {
-	sendResultResponse(w, []any{})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletLock(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletReconnect(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletRemove(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletSend(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{"error": "wallet_send not implemented"})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletStatus(w http.ResponseWriter, params any) {
-	sendResultResponse(w, map[string]any{
-		"connected":         false,
-		"encrypted":         false,
-		"locked":            true,
-		"items":             0,
-		"keys":              0,
-		"height":            0,
-		"wallet_db_version": 0,
-	})
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletUnlock(w http.ResponseWriter, params any) {
-	sendResultResponse(w, true)
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
