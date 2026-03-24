@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"runtime/debug"
@@ -11,8 +10,24 @@ import (
 
 func StartServer() {
 	http.HandleFunc("/", handleJSONRPC)
-
 	http.ListenAndServe(":5279", nil)
+}
+
+func sendResultResponse(w http.ResponseWriter, result any) {
+	json.NewEncoder(w).Encode(map[string]any{
+		"jsonrpc": "2.0",
+		"result":  result,
+	})
+}
+
+func sendErrorResponse(w http.ResponseWriter, code int, message string) {
+	json.NewEncoder(w).Encode(map[string]any{
+		"jsonrpc": "2.0",
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+		},
+	})
 }
 
 func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
@@ -29,26 +44,12 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 
 		if errBatch != nil && err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			resp, _ := json.Marshal(map[string]any{
-				"jsonrpc": "2.0",
-				"error": map[string]any{
-					"code":    -32700,
-					"message": "Cannot parse invalid JSON data.",
-				},
-			})
-			fmt.Fprint(w, string(resp))
+			sendErrorResponse(w, -32700, "Cannot parse invalid JSON data.")
 			return
 		}
 		if messageBatch != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			resp, _ := json.Marshal(map[string]any{
-				"jsonrpc": "2.0",
-				"error": map[string]any{
-					"code":    -32700,
-					"message": "Batches are not supported",
-				},
-			})
-			fmt.Fprint(w, string(resp))
+			sendErrorResponse(w, -32700, "Batches are not supported")
 			return
 		}
 
@@ -57,49 +58,49 @@ func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	resp, _ := json.Marshal(map[string]any{
-		"jsonrpc": "2.0",
-		"error": map[string]any{
-			"code":    -32700,
-			"message": "HTTP method not allowed.",
-		},
-	})
-	fmt.Fprint(w, string(resp))
+	sendErrorResponse(w, -32700, "HTTP method not allowed.")
+}
+
+var handlers = map[string]func(http.ResponseWriter, any){
+	"status":  handleJSONRPCMessageStatus,
+	"version": handleJSONRPCMessageVersion,
 }
 
 func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
-	if message["method"] == "status" {
-		handleJSONRPCMessageStatus(w)
+	method, existsMethod := message["method"].(string)
+	params, existsParams := message["params"]
+
+	if !existsMethod {
+		w.WriteHeader(http.StatusBadRequest)
+		sendErrorResponse(w, -32600, "Method property is missing.")
 		return
 	}
-	if message["method"] == "version" {
-		handleJSONRPCMessageVersion(w)
+
+	handler, exists := handlers[method]
+	if exists {
+		if existsParams {
+			handler(w, params)
+			return
+		}
+		handler(w, nil)
 		return
 	}
 
 	w.WriteHeader(http.StatusBadRequest)
-	resp, _ := json.Marshal(map[string]any{
-		"jsonrpc": "2.0",
-		"error": map[string]any{
-			"code":    -32601,
-			"message": "Unknown JSON-RPC method.",
-		},
-	})
-	fmt.Fprint(w, string(resp))
+	sendErrorResponse(w, -32601, "Unknown JSON-RPC method.")
 }
 
-func handleJSONRPCMessageStatus(w http.ResponseWriter) {
-	resp, _ := json.Marshal(map[string]any{
+func handleJSONRPCMessageStatus(w http.ResponseWriter, params any) {
+	sendResultResponse(w, map[string]any{
 		"jsonrpc": "2.0",
 		"result":  map[string]any{},
 	})
-	fmt.Fprint(w, string(resp))
 }
 
-func handleJSONRPCMessageVersion(w http.ResponseWriter) {
+func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
 	info, _ := debug.ReadBuildInfo()
 
-	resp, _ := json.Marshal(map[string]any{
+	sendResultResponse(w, map[string]any{
 		"jsonrpc": "2.0",
 		"result": map[string]any{
 			"build":           nil,
@@ -112,5 +113,4 @@ func handleJSONRPCMessageVersion(w http.ResponseWriter) {
 			"version":         info.Main.Version,
 		},
 	})
-	fmt.Fprint(w, string(resp))
 }
