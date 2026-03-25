@@ -55,10 +55,13 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 }
 
 func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	info, _ = debug.ReadBuildInfo()
+
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Server", "LBRYd/"+info.Main.Version)
 
 	if strings.EqualFold(req.Method, "OPTIONS") {
 		w.WriteHeader(http.StatusNoContent)
