@@ -1,6 +1,6 @@
 module lbry/daemon
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/2xxn/go-raw-protobuf v1.2.5 // indirect
