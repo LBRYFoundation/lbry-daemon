@@ -55,7 +55,7 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 }
 
 func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
-	info, _ = debug.ReadBuildInfo()
+	info, _ := debug.ReadBuildInfo()
 
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
