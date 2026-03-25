@@ -1,4 +1,6 @@
 github.com/2xxn/go-raw-protobuf v1.2.5 h1:PLU9RS5rGuF7Qn9mFsiUR4owJNS4esuhxEztpLyrg14=
 github.com/2xxn/go-raw-protobuf v1.2.5/go.mod h1:1fUFwlu06vsh1Q7W+iyn8ZT4WoJuZThnikXEEDnnjs8=
+golang.org/x/crypto v0.49.0 h1:+Ng2ULVvLHnJ/ZFEq4KdcDd/cfjrrjjNSXNzxg0Y4U4=
+golang.org/x/crypto v0.49.0/go.mod h1:ErX4dUh2UM+CFYiXZRTcMpEcN8b/1gxEuv3nODoYtCA=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
