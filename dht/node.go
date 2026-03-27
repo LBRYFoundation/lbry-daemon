@@ -35,7 +35,6 @@ var SeedNodes = []string{
 	"lbrynet2.lbry.com:4444",
 	"lbrynet4.lbry.com:4444",
 	"dht.lbry.grin.io:4444",
-	"dht.lbry.madiator.com:4444",
 	"dht.lizard.technology:4444",
 	"s2.lbry.network:4444",
 }
@@ -174,26 +173,31 @@ func (rt *RoutingTable) ClosestPeers(key [HashSize]byte, n int) []Peer {
 // --- DHT Node ---
 
 type Node struct {
-	ID       [HashSize]byte
-	UDPPort  int
-	TCPPort  int // blob exchange port
-	conn     *net.UDPConn
-	routing  *RoutingTable
-	pending  map[string]chan map[string]any // rpcID -> response channel
-	mu       sync.RWMutex
-	running  bool
+	ID          [HashSize]byte
+	UDPPort     int
+	TCPPort     int // blob exchange port
+	conn        *net.UDPConn
+	routing     *RoutingTable
+	pending     map[string]chan map[string]any // rpcID -> response channel
+	mu          sync.RWMutex
+	running     bool
+	tokenSecret [HashSize]byte // random secret for token generation
 }
 
 func NewNode(udpPort, tcpPort int) (*Node, error) {
 	var id [HashSize]byte
 	rand.Read(id[:])
 
+	var secret [HashSize]byte
+	rand.Read(secret[:])
+
 	node := &Node{
-		ID:      id,
-		UDPPort: udpPort,
-		TCPPort: tcpPort,
-		routing: NewRoutingTable(id),
-		pending: make(map[string]chan map[string]any),
+		ID:          id,
+		UDPPort:     udpPort,
+		TCPPort:     tcpPort,
+		routing:     NewRoutingTable(id),
+		pending:     make(map[string]chan map[string]any),
+		tokenSecret: secret,
 	}
 	return node, nil
 }
@@ -209,9 +213,26 @@ func (n *Node) Start() error {
 	n.UDPPort = conn.LocalAddr().(*net.UDPAddr).Port
 
 	go n.readLoop()
+	go n.refreshLoop()
 
 	log.Printf("DHT node started on UDP port %d (ID: %s...)", n.UDPPort, hex.EncodeToString(n.ID[:8]))
 	return nil
+}
+
+// refreshLoop periodically refreshes the routing table.
+func (n *Node) refreshLoop() {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+	for n.running {
+		<-ticker.C
+		log.Println("DHT: refreshing routing table...")
+		// Lookup a random ID to discover new peers
+		var randomID [HashSize]byte
+		rand.Read(randomID[:])
+		n.FindNode(randomID)
+		// Also re-lookup own ID
+		n.FindNode(n.ID)
+	}
 }
 
 func (n *Node) Stop() {
@@ -316,7 +337,7 @@ func (n *Node) handleRequest(msg map[string]any, from *net.UDPAddr) {
 
 func (n *Node) makeToken(ip net.IP) []byte {
 	h := sha512.New384()
-	h.Write(n.ID[:]) // use node ID as secret (simplified)
+	h.Write(n.tokenSecret[:])
 	h.Write(ip.To4())
 	return h.Sum(nil)
 }
@@ -411,13 +432,23 @@ func (n *Node) FindValue(key [HashSize]byte) ([]Peer, []Peer) {
 		if !ok {
 			return
 		}
-		// Blob peers are stored under the key (hex of blob hash)
-		keyHex := hex.EncodeToString(key[:])
-		peersData := getBencAny(respDict, keyHex)
-		if peersData == nil {
-			// Also try raw key bytes as string
-			peersData = getBencAny(respDict, string(key[:]))
+
+		// The blob peers are stored under a key that matches the blob hash.
+		// The key format varies: could be raw bytes as string, hex string, or anything.
+		// Check all dict keys that aren't known protocol fields.
+		knownKeys := map[string]bool{"token": true, "contacts": true, "p": true, "protocolVersion": true}
+		var peersData any
+		for k, v := range respDict {
+			if knownKeys[k] {
+				continue
+			}
+			// Any unknown key with a list value is likely the blob peers
+			if _, isList := v.([]any); isList {
+				peersData = v
+				break
+			}
 		}
+
 		if peerList, ok := peersData.([]any); ok {
 			mu.Lock()
 			for _, p := range peerList {
@@ -606,14 +637,27 @@ func parseContactTriples(list []any) []Peer {
 		ipBytes := toBytes(triple[1])
 		port := toBencInt(triple[2])
 
-		if len(nodeIDBytes) != HashSize || len(ipBytes) < 4 || port <= 0 {
+		if len(nodeIDBytes) != HashSize || port <= 0 {
 			continue
 		}
+
 		var id [HashSize]byte
 		copy(id[:], nodeIDBytes)
+
+		// IP can be 4 raw bytes OR a string like "51.83.238.186"
+		var ip net.IP
+		if len(ipBytes) == 4 {
+			ip = net.IPv4(ipBytes[0], ipBytes[1], ipBytes[2], ipBytes[3])
+		} else {
+			ip = net.ParseIP(string(ipBytes))
+		}
+		if ip == nil {
+			continue
+		}
+
 		peers = append(peers, Peer{
 			ID:      id,
-			IP:      net.IPv4(ipBytes[0], ipBytes[1], ipBytes[2], ipBytes[3]),
+			IP:      ip,
 			UDPPort: int(port),
 		})
 	}
