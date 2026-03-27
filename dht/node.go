@@ -20,7 +20,6 @@ const (
 	RPCTimeout       = 5 * time.Second
 	MsgSizeLimit     = 1400
 	TokenSize        = HashSize
-	DefaultUDPPort   = 4444
 	ProtocolVersion  = 1
 	CompactAddrSize  = 4 + 2 + HashSize // IPv4 + port + node_id = 54
 )
