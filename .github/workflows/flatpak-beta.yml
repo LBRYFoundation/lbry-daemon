@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Flatpak
         run: sudo apt install flatpak flatpak-builder
       - name: Setup Flatpak
@@ -26,13 +26,13 @@ jobs:
         run: flatpak build-bundle repo lbry-daemon.flatpak org.lbry.daemon
       - name: Upload Flatpak (x86)
         if: ${{ matrix.os == 'ubuntu-24.04' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lbry-daemon_x86_64.flatpak
           path: ./lbry-daemon.flatpak
       - name: Upload Flatpak (ARM)
         if: ${{ matrix.os == 'ubuntu-24.04-arm' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lbry-daemon_aarch64.flatpak
           path: ./lbry-daemon.flatpak
