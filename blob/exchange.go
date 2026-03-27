@@ -1,17 +1,15 @@
 package blob
 
-import (
-	"bufio"
-	"bytes"
-	"crypto/sha512"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net"
-	"strconv"
-	"time"
-)
+import "bufio"
+import "bytes"
+import "crypto/sha512"
+import "encoding/hex"
+import "encoding/json"
+import "fmt"
+import "io"
+import "net"
+import "strconv"
+import "time"
 
 const (
 	MaxBlobSize     = 2 * 1024 * 1024 // 2 MiB

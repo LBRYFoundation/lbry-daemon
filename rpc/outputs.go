@@ -1,8 +1,6 @@
 package rpc
 
-import (
-	"google.golang.org/protobuf/encoding/protowire"
-)
+import "google.golang.org/protobuf/encoding/protowire"
 
 // Hub Outputs protobuf types and decoders.
 

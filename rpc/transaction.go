@@ -1,13 +1,11 @@
 package rpc
 
-import (
-	"crypto/sha256"
-	"encoding/binary"
-	"encoding/hex"
-	"fmt"
+import "crypto/sha256"
+import "encoding/binary"
+import "encoding/hex"
+import "fmt"
 
-	"golang.org/x/crypto/ripemd160"
-)
+import "golang.org/x/crypto/ripemd160"
 
 // LBRY script opcodes.
 const (

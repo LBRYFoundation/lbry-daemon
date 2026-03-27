@@ -1,17 +1,15 @@
 package dht
 
-import (
-	"crypto/rand"
-	"crypto/sha512"
-	"encoding/binary"
-	"encoding/hex"
-	"fmt"
-	"log"
-	"net"
-	"sort"
-	"sync"
-	"time"
-)
+import "crypto/rand"
+import "crypto/sha512"
+import "encoding/binary"
+import "encoding/hex"
+import "fmt"
+import "log"
+import "net"
+import "sort"
+import "sync"
+import "time"
 
 // LBRY Kademlia DHT constants.
 const (

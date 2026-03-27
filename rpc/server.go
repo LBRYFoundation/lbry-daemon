@@ -1,19 +1,17 @@
 package rpc
 
-import (
-	"bufio"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"math"
-	"net"
-	"net/http"
-	"runtime/debug"
-	"strconv"
-	"strings"
+import "bufio"
+import "encoding/base64"
+import "encoding/json"
+import "fmt"
+import "math"
+import "net"
+import "net/http"
+import "runtime/debug"
+import "strconv"
+import "strings"
 
-	"google.golang.org/protobuf/encoding/protowire"
-)
+import "google.golang.org/protobuf/encoding/protowire"
 
 func CreateServer() *http.Server {
 	rpcServeMux := http.NewServeMux()

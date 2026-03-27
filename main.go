@@ -1,13 +1,13 @@
 package main
 
 import "fmt"
+import "lbry/daemon/dht"
+import "lbry/daemon/stream"
+import "lbry/daemon/rpc"
 import "net"
 import "net/http"
 import "strconv"
 import "sync"
-import "lbry/daemon/dht"
-import "lbry/daemon/stream"
-import "lbry/daemon/rpc"
 
 var wg sync.WaitGroup
 

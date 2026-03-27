@@ -1,11 +1,9 @@
 package dht
 
-import (
-	"bytes"
-	"fmt"
-	"sort"
-	"strconv"
-)
+import "bytes"
+import "fmt"
+import "sort"
+import "strconv"
 
 // Bencode encoder/decoder for LBRY DHT Kademlia protocol.
 // Supports: integers, byte strings, lists, dictionaries.

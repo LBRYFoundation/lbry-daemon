@@ -1,12 +1,10 @@
 package rpc
 
-import (
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
+import "encoding/hex"
+import "encoding/json"
+import "fmt"
 
-	"google.golang.org/protobuf/encoding/protowire"
-)
+import "google.golang.org/protobuf/encoding/protowire"
 
 // decodeClaim decodes a Claim protobuf into a JSON-friendly map.
 // It flattens the type-specific sub-message (stream/channel/collection/repost)

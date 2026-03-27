@@ -1,16 +1,14 @@
 package stream
 
-import (
-	"fmt"
-	"log"
-	"lbry/daemon/blob"
-	"lbry/daemon/dht"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-)
+import "fmt"
+import "log"
+import "lbry/daemon/blob"
+import "lbry/daemon/dht"
+import "net/http"
+import "strconv"
+import "strings"
+import "sync"
+import "time"
 
 // Manager handles P2P blob downloading and HTTP streaming.
 type Manager struct {
