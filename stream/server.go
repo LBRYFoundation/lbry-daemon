@@ -5,7 +5,6 @@ import (
 	"log"
 	"lbry/daemon/blob"
 	"lbry/daemon/dht"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,6 +21,13 @@ type Manager struct {
 	sdCacheMu  sync.RWMutex
 }
 
+func CreateServer(m *Manager) *http.Server {
+	contentServeMux := http.NewServeMux()
+	contentServeMux.HandleFunc("/", m.handleStream)
+
+	return &http.Server{Handler: contentServeMux}
+}
+
 func NewManager(dhtNode *dht.Node) *Manager {
 	return &Manager{
 		dhtNode: dhtNode,
@@ -33,26 +39,6 @@ func NewManager(dhtNode *dht.Node) *Manager {
 // GetStreamingURL returns the local streaming URL for a given SD hash.
 func (m *Manager) GetStreamingURL(sdHash string, port int) string {
 	return fmt.Sprintf("http://localhost:%d/stream/%s", port, sdHash)
-}
-
-// StartHTTP starts the streaming HTTP server.
-func (m *Manager) StartHTTP(port int) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/stream/", m.handleStream)
-
-	server := &http.Server{
-		Addr:    ":" + strconv.Itoa(port),
-		Handler: mux,
-	}
-
-	ln, err := net.Listen("tcp", server.Addr)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Streaming server on http://localhost:%d/stream/{sd_hash}", port)
-	go server.Serve(ln)
-	return nil
 }
 
 func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
