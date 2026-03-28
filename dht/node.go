@@ -13,15 +13,15 @@ import "time"
 
 // LBRY Kademlia DHT constants.
 const (
-	HashSize         = 48 // SHA-384 = 48 bytes
-	K                = 8  // k-bucket size
-	Alpha            = 5  // parallel lookups
-	RPCIDSize        = 20
-	RPCTimeout       = 5 * time.Second
-	MsgSizeLimit     = 1400
-	TokenSize        = HashSize
-	ProtocolVersion  = 1
-	CompactAddrSize  = 4 + 2 + HashSize // IPv4 + port + node_id = 54
+	HashSize        = 48 // SHA-384 = 48 bytes
+	K               = 8  // k-bucket size
+	Alpha           = 5  // parallel lookups
+	RPCIDSize       = 20
+	RPCTimeout      = 5 * time.Second
+	MsgSizeLimit    = 1400
+	TokenSize       = HashSize
+	ProtocolVersion = 1
+	CompactAddrSize = 4 + 2 + HashSize // IPv4 + port + node_id = 54
 )
 
 // Bootstrap seed nodes.
@@ -38,10 +38,10 @@ var SeedNodes = []string{
 
 // Peer holds a contact in the network.
 type Peer struct {
-	ID      [HashSize]byte
-	IP      net.IP
-	UDPPort int
-	TCPPort int // for blob exchange
+	ID       [HashSize]byte
+	IP       net.IP
+	UDPPort  int
+	TCPPort  int // for blob exchange
 	LastSeen time.Time
 }
 
@@ -481,9 +481,9 @@ func (n *Node) iterativeLookupWithCallback(key [HashSize]byte, findValue bool, o
 
 	contacted := make(map[[HashSize]byte]bool)
 	type result struct {
-		peer    Peer
-		resp    map[string]any
-		err     error
+		peer     Peer
+		resp     map[string]any
+		err      error
 		newPeers []Peer
 	}
 

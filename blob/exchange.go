@@ -27,10 +27,10 @@ type BlobRequest struct {
 
 // BlobResponse is the JSON response from a blob exchange peer.
 type BlobResponse struct {
-	AvailableBlobs []string     `json:"available_blobs,omitempty"`
-	PaymentRate    string       `json:"blob_data_payment_rate,omitempty"`
+	AvailableBlobs []string      `json:"available_blobs,omitempty"`
+	PaymentRate    string        `json:"blob_data_payment_rate,omitempty"`
 	IncomingBlob   *IncomingBlob `json:"incoming_blob,omitempty"`
-	Error          string       `json:"error,omitempty"`
+	Error          string        `json:"error,omitempty"`
 }
 
 type IncomingBlob struct {

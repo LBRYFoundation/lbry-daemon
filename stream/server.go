@@ -12,11 +12,11 @@ import "time"
 
 // Manager handles P2P blob downloading and HTTP streaming.
 type Manager struct {
-	dhtNode    *dht.Node
-	cache      map[string][]byte // blobHash -> decrypted content
-	cacheMu    sync.RWMutex
-	sdCache    map[string]*blob.StreamDescriptor // sdHash -> descriptor
-	sdCacheMu  sync.RWMutex
+	dhtNode   *dht.Node
+	cache     map[string][]byte // blobHash -> decrypted content
+	cacheMu   sync.RWMutex
+	sdCache   map[string]*blob.StreamDescriptor // sdHash -> descriptor
+	sdCacheMu sync.RWMutex
 }
 
 func CreateServer(m *Manager) *http.Server {

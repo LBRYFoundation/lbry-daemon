@@ -9,7 +9,7 @@ import "fmt"
 // StreamDescriptor is the parsed SD blob JSON.
 type StreamDescriptor struct {
 	StreamName        string     `json:"stream_name"`
-	Key               string     `json:"key"`               // hex-encoded AES-128 key
+	Key               string     `json:"key"` // hex-encoded AES-128 key
 	SuggestedFileName string     `json:"suggested_file_name"`
 	StreamHash        string     `json:"stream_hash"`
 	StreamType        string     `json:"stream_type"`
@@ -19,7 +19,7 @@ type StreamDescriptor struct {
 type BlobInfo struct {
 	BlobHash string `json:"blob_hash,omitempty"`
 	BlobNum  int    `json:"blob_num"`
-	IV       string `json:"iv"`     // hex-encoded 16-byte IV
+	IV       string `json:"iv"` // hex-encoded 16-byte IV
 	Length   int    `json:"length"`
 }
 
