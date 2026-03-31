@@ -4,11 +4,13 @@ import "crypto/rand"
 import "crypto/sha512"
 import "encoding/binary"
 import "encoding/hex"
+import "errors"
 import "fmt"
 import "log"
 import "net"
 import "sort"
 import "sync"
+import "reflect"
 import "time"
 
 // LBRY Kademlia DHT constants.
@@ -23,6 +25,10 @@ const (
 	ProtocolVersion = 1
 	CompactAddrSize = 4 + 2 + HashSize // IPv4 + port + node_id = 54
 )
+
+const TYPE_REQUEST = 0
+const TYPE_RESPONSE = 1
+const TYPE_ERROR = 2
 
 // Bootstrap seed nodes.
 var SeedNodes = []string{
@@ -285,50 +291,80 @@ func (n *Node) handleMessage(data []byte, from *net.UDPAddr) {
 	}
 }
 
+type MethodFunction func(*net.UDPAddr, []any) (any, []any, error)
+
 func (n *Node) handleRequest(msg map[string]any, from *net.UDPAddr) {
-	method := string(getBencBytes(msg, "3"))
 	rpcID := getBencBytes(msg, "1")
+	method := string(getBencBytes(msg, "3"))
+	argumentsIn := getBencList(msg, "4")
 
-	switch method {
-	case "ping":
-		n.sendResponse(from, rpcID, []byte("pong"))
-	case "findNode":
-		args := getBencList(msg, "4")
-		if len(args) == 0 {
-			return
-		}
-		key := toBytes(args[0])
-		if len(key) != HashSize {
-			return
-		}
-		var keyArr [HashSize]byte
-		copy(keyArr[:], key)
-		peers := n.routing.ClosestPeers(keyArr, K)
-		contacts := peersToContactList(peers)
-		n.sendResponse(from, rpcID, contacts)
-	case "findValue":
-		// We don't store values, just return closest nodes
-		args := getBencList(msg, "4")
-		if len(args) == 0 {
-			return
-		}
-		key := toBytes(args[0])
-		if len(key) != HashSize {
-			return
-		}
-		var keyArr [HashSize]byte
-		copy(keyArr[:], key)
-		peers := n.routing.ClosestPeers(keyArr, K)
-		contacts := peersToContactList(peers)
+	function, ok := (map[string]MethodFunction{
+		"ping":           n.handlePing,
+		"findNode":       n.handleFindNode,
+		"handleFindNode": n.handleFindValue,
+		"store":          n.handleStore,
+	})[method]
 
-		// Generate token
-		token := n.makeToken(from.IP)
-		resp := map[string]any{
-			"token":    string(token),
-			"contacts": contacts,
+	if ok {
+		payload, argumentsOut, err := function(from, argumentsIn)
+		if err != nil {
+			n.sendMessage(from, TYPE_ERROR, rpcID, err.Error(), nil)
+			return
 		}
-		n.sendResponse(from, rpcID, resp)
+		n.sendMessage(from, TYPE_RESPONSE, rpcID, payload, argumentsOut)
+		return
 	}
+
+	n.sendMessage(from, TYPE_ERROR, rpcID, "Unknown method", nil)
+}
+
+func (n *Node) handlePing(from *net.UDPAddr, args []any) (any, []any, error) {
+	return "pong", nil, nil
+}
+
+func (n *Node) handleFindNode(from *net.UDPAddr, args []any) (any, []any, error) {
+	if len(args) == 0 {
+		return nil, nil, errors.New("Needs arguments")
+	}
+	key := toBytes(args[0])
+	if len(key) != HashSize {
+		return nil, nil, errors.New("Key fails length")
+	}
+	var keyArr [HashSize]byte
+	copy(keyArr[:], key)
+	peers := n.routing.ClosestPeers(keyArr, K)
+	contacts := peersToContactList(peers)
+
+	return contacts, nil, nil
+}
+
+func (n *Node) handleFindValue(from *net.UDPAddr, args []any) (any, []any, error) {
+	// We don't store values, just return closest nodes
+	if len(args) == 0 {
+		return nil, nil, errors.New("Needs arguments")
+	}
+	key := toBytes(args[0])
+	if len(key) != HashSize {
+		return nil, nil, errors.New("Key fails length")
+	}
+	var keyArr [HashSize]byte
+	copy(keyArr[:], key)
+	peers := n.routing.ClosestPeers(keyArr, K)
+	contacts := peersToContactList(peers)
+
+	// Generate token
+	token := n.makeToken(from.IP)
+	resp := map[string]any{
+		"token":    string(token),
+		"contacts": contacts,
+	}
+
+	return resp, nil, nil
+
+}
+
+func (n *Node) handleStore(from *net.UDPAddr, args []any) (any, []any, error) {
+	return nil, nil, errors.New("Not implemented")
 }
 
 func (n *Node) makeToken(ip net.IP) []byte {
@@ -338,13 +374,17 @@ func (n *Node) makeToken(ip net.IP) []byte {
 	return h.Sum(nil)
 }
 
-func (n *Node) sendResponse(to *net.UDPAddr, rpcID []byte, value any) {
+func (n *Node) sendMessage(to *net.UDPAddr, messageType int, rpcID []byte, value any, arguments []any) {
 	msg := map[int]any{
-		0: 1, // RESPONSE
+		0: messageType,
 		1: rpcID,
 		2: n.ID[:],
 		3: value,
 	}
+	if arguments != nil {
+		msg[4] = arguments
+	}
+
 	data, err := BencodeEncode(msg)
 	if err != nil {
 		return
@@ -369,19 +409,6 @@ func (n *Node) sendRPC(to *net.UDPAddr, method string, args []any) (map[string]a
 		args = []any{pvDict}
 	}
 
-	msg := map[int]any{
-		0: 0, // REQUEST
-		1: rpcID,
-		2: n.ID[:],
-		3: []byte(method),
-		4: args,
-	}
-
-	data, err := BencodeEncode(msg)
-	if err != nil {
-		return nil, err
-	}
-
 	ch := make(chan map[string]any, 1)
 	key := string(rpcID)
 	n.mu.Lock()
@@ -394,7 +421,7 @@ func (n *Node) sendRPC(to *net.UDPAddr, method string, args []any) (map[string]a
 		n.mu.Unlock()
 	}()
 
-	n.conn.WriteToUDP(data, to)
+	n.sendMessage(to, TYPE_REQUEST, rpcID, []byte(method), args)
 
 	select {
 	case resp := <-ch:
@@ -709,4 +736,11 @@ func getBencList(m map[string]any, key string) []any {
 
 func getBencAny(m map[string]any, key string) any {
 	return m[key]
+}
+
+func getKeywordArguments(args []any) map[string]any {
+	if len(args) > 0 && reflect.ValueOf(len(args)-1).Kind() == reflect.Map {
+		return args[len(args)-1].(map[string]any)
+	}
+	return nil
 }
