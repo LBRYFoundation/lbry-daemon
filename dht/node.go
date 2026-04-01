@@ -26,6 +26,11 @@ const (
 	CompactAddrSize = 4 + 2 + HashSize // IPv4 + port + node_id = 54
 )
 
+const METHOD_PING = "ping"
+const METHOD_FIND_NODE = "findNode"
+const METHOD_FIND_VALUE = "findValue"
+const METHOD_STORE = "store"
+
 const TYPE_REQUEST = 0
 const TYPE_RESPONSE = 1
 const TYPE_ERROR = 2
@@ -39,6 +44,7 @@ var SeedNodes = []string{
 	"lbrynet4.lbry.com:4444",
 	"dht.lbry.grin.io:4444",
 	"dht.lizard.technology:4444",
+	"s1.lbry.network:4444",
 	"s2.lbry.network:4444",
 }
 
@@ -214,6 +220,8 @@ func (n *Node) Start() error {
 	n.running = true
 	n.UDPPort = conn.LocalAddr().(*net.UDPAddr).Port
 
+	go n.Bootstrap()
+
 	go n.readLoop()
 	go n.refreshLoop()
 
@@ -267,21 +275,29 @@ func (n *Node) handleMessage(data []byte, from *net.UDPAddr) {
 		return
 	}
 
-	packetType := getBencInt(msg, "0")
-	rpcID := getBencBytes(msg, "1")
-	nodeID := getBencBytes(msg, "2")
+	dhtMessage := DHTMessage{
+		Type:   getBencInt(msg, "0"),
+		RPCID:  getBencBytes(msg, "1"),
+		NodeID: getBencBytes(msg, "2"),
+		// TODO: Payload here
+		Arguments: getBencList(msg, "4"),
+	}
 
-	if len(nodeID) == HashSize {
+	if dhtMessage.Type == TYPE_REQUEST {
+		dhtMessage.Payload = getBencBytes(msg, "3")
+	}
+
+	if len(dhtMessage.NodeID) == HashSize {
 		var id [HashSize]byte
-		copy(id[:], nodeID)
+		copy(id[:], dhtMessage.NodeID)
 		n.routing.AddPeer(Peer{ID: id, IP: from.IP, UDPPort: from.Port})
 	}
 
-	switch packetType {
+	switch dhtMessage.Type {
 	case 0: // REQUEST
-		n.handleRequest(msg, from)
+		n.handleRequest(from, dhtMessage)
 	case 1: // RESPONSE
-		key := string(rpcID)
+		key := string(dhtMessage.RPCID)
 		n.mu.RLock()
 		ch, ok := n.pending[key]
 		n.mu.RUnlock()
@@ -291,31 +307,48 @@ func (n *Node) handleMessage(data []byte, from *net.UDPAddr) {
 	}
 }
 
+type DHTMessage struct {
+	Type      int64
+	RPCID     []byte
+	NodeID    []byte
+	Payload   any
+	Arguments []any
+}
+
 type MethodFunction func(*net.UDPAddr, []any) (any, []any, error)
 
-func (n *Node) handleRequest(msg map[string]any, from *net.UDPAddr) {
-	rpcID := getBencBytes(msg, "1")
-	method := string(getBencBytes(msg, "3"))
-	argumentsIn := getBencList(msg, "4")
-
+func (n *Node) handleRequest(from *net.UDPAddr, message DHTMessage) {
 	function, ok := (map[string]MethodFunction{
-		"ping":           n.handlePing,
-		"findNode":       n.handleFindNode,
-		"handleFindNode": n.handleFindValue,
-		"store":          n.handleStore,
-	})[method]
+		METHOD_PING:       n.handlePing,
+		METHOD_FIND_NODE:  n.handleFindNode,
+		METHOD_FIND_VALUE: n.handleFindValue,
+		METHOD_STORE:      n.handleStore,
+	})[string(message.Payload.([]byte))]
 
 	if ok {
-		payload, argumentsOut, err := function(from, argumentsIn)
+		payload, arguments, err := function(from, message.Arguments)
 		if err != nil {
-			n.sendMessage(from, TYPE_ERROR, rpcID, err.Error(), nil)
+			n.sendMessage(from, DHTMessage{
+				Type:    TYPE_ERROR,
+				RPCID:   message.RPCID,
+				Payload: []byte(err.Error()),
+			})
 			return
 		}
-		n.sendMessage(from, TYPE_RESPONSE, rpcID, payload, argumentsOut)
+		n.sendMessage(from, DHTMessage{
+			Type:      TYPE_RESPONSE,
+			RPCID:     message.RPCID,
+			Payload:   payload,
+			Arguments: arguments,
+		})
 		return
 	}
 
-	n.sendMessage(from, TYPE_ERROR, rpcID, "Unknown method", nil)
+	n.sendMessage(from, DHTMessage{
+		Type:    TYPE_ERROR,
+		RPCID:   message.RPCID,
+		Payload: []byte("Unknown method"),
+	})
 }
 
 func (n *Node) handlePing(from *net.UDPAddr, args []any) (any, []any, error) {
@@ -374,15 +407,15 @@ func (n *Node) makeToken(ip net.IP) []byte {
 	return h.Sum(nil)
 }
 
-func (n *Node) sendMessage(to *net.UDPAddr, messageType int, rpcID []byte, value any, arguments []any) {
+func (n *Node) sendMessage(to *net.UDPAddr, message DHTMessage) {
 	msg := map[int]any{
-		0: messageType,
-		1: rpcID,
+		0: message.Type,
+		1: message.RPCID,
 		2: n.ID[:],
-		3: value,
+		3: message.Payload,
 	}
-	if arguments != nil {
-		msg[4] = arguments
+	if message.Arguments != nil {
+		msg[4] = message.Arguments
 	}
 
 	data, err := BencodeEncode(msg)
@@ -421,7 +454,12 @@ func (n *Node) sendRPC(to *net.UDPAddr, method string, args []any) (map[string]a
 		n.mu.Unlock()
 	}()
 
-	n.sendMessage(to, TYPE_REQUEST, rpcID, []byte(method), args)
+	n.sendMessage(to, DHTMessage{
+		Type:      TYPE_REQUEST,
+		RPCID:     rpcID,
+		Payload:   []byte(method),
+		Arguments: args,
+	})
 
 	select {
 	case resp := <-ch:
@@ -433,7 +471,7 @@ func (n *Node) sendRPC(to *net.UDPAddr, method string, args []any) (map[string]a
 
 // Ping sends a ping to a peer.
 func (n *Node) Ping(addr *net.UDPAddr) error {
-	_, err := n.sendRPC(addr, "ping", nil)
+	_, err := n.sendRPC(addr, METHOD_PING, nil)
 	return err
 }
 
@@ -533,10 +571,10 @@ func (n *Node) iterativeLookupWithCallback(key [HashSize]byte, findValue bool, o
 				addr := &net.UDPAddr{IP: peer.IP, Port: peer.UDPPort}
 				var resp map[string]any
 				var err error
-				method := "findNode"
+				method := METHOD_FIND_NODE
 				args := []any{key[:]}
 				if findValue {
-					method = "findValue"
+					method = METHOD_FIND_VALUE
 					args = []any{key[:], map[string]any{"p": 0}}
 				}
 				resp, err = n.sendRPC(addr, method, args)
