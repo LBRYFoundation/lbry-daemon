@@ -5,6 +5,7 @@ import "log"
 import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "net/http"
+import "runtime/debug"
 import "strconv"
 import "strings"
 import "sync"
@@ -40,11 +41,15 @@ func (m *Manager) GetStreamingURL(sdHash string, port int) string {
 }
 
 func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Incoming stream request")
+
 	sdHash := strings.TrimPrefix(r.URL.Path, "/stream/")
 	if sdHash == "" || len(sdHash) != blob.BlobHashLength {
 		http.Error(w, "invalid sd_hash", http.StatusBadRequest)
 		return
 	}
+
+	info, _ := debug.ReadBuildInfo()
 
 	// CORS for frontend
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -153,12 +158,12 @@ func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Manager) getDescriptor(sdHash string) (*blob.StreamDescriptor, error) {
-	m.sdCacheMu.RLock()
+	//m.sdCacheMu.RLock()
 	if sd, ok := m.sdCache[sdHash]; ok {
-		m.sdCacheMu.RUnlock()
+		//m.sdCacheMu.RUnlock()
 		return sd, nil
 	}
-	m.sdCacheMu.RUnlock()
+	//m.sdCacheMu.RUnlock()
 
 	// Download SD blob from peers
 	sdData, err := m.downloadBlob(sdHash)
@@ -171,9 +176,9 @@ func (m *Manager) getDescriptor(sdHash string) (*blob.StreamDescriptor, error) {
 		return nil, err
 	}
 
-	m.sdCacheMu.Lock()
+	//m.sdCacheMu.Lock()
 	m.sdCache[sdHash] = sd
-	m.sdCacheMu.Unlock()
+	//m.sdCacheMu.Unlock()
 	return sd, nil
 }
 

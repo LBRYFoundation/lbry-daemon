@@ -12,12 +12,12 @@ import "sync"
 var wg sync.WaitGroup
 
 func main() {
+	node, _ := dht.NewNode(4444)
 	rpcServer := rpc.CreateServer()
-	contentServer := stream.CreateServer(nil)
+	contentServer := stream.CreateServer(stream.NewManager(node))
 
 	wg.Go(func() {
 		fmt.Println("Starting DHT server on port 4444.")
-		node, _ := dht.NewNode(4444)
 		// node.TCPPort = 5567
 		node.Start()
 	})

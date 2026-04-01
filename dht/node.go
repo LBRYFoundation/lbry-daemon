@@ -37,13 +37,13 @@ const TYPE_ERROR = 2
 
 // Bootstrap seed nodes.
 var SeedNodes = []string{
-	"lbrynet3.lbry.com:4444",
 	"51.83.238.186:4444",
-	"lbrynet1.lbry.com:4444",
-	"lbrynet2.lbry.com:4444",
-	"lbrynet4.lbry.com:4444",
 	"dht.lbry.grin.io:4444",
 	"dht.lizard.technology:4444",
+	"lbrynet1.lbry.com:4444",
+	"lbrynet2.lbry.com:4444",
+	"lbrynet3.lbry.com:4444",
+	"lbrynet4.lbry.com:4444",
 	"s1.lbry.network:4444",
 	"s2.lbry.network:4444",
 }
