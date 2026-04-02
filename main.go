@@ -19,6 +19,8 @@ func main() {
 
 	rpcServer := rpc.CreateServer()
 	contentServer := stream.CreateServer(stream.NewManager(node))
+	reflectorServer := reflector.CreateServer(blobManager)
+	peerServer := peer.CreateServer(blobManager)
 
 	wg.Go(func() {
 		fmt.Println("Starting DHT server on port 4444.")
@@ -33,7 +35,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		rpc.StartServer(rpcServer, listener)
+		rpcServer.StartServer(listener)
 	})
 
 	wg.Go(func() {
@@ -43,7 +45,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		stream.StartServer(contentServer, listener)
+		contentServer.StartServer(listener)
 	})
 
 	wg.Go(func() {
@@ -53,7 +55,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		reflector.StartServer(blobManager, listener)
+		reflectorServer.StartServer(listener)
 	})
 
 	wg.Go(func() {
@@ -63,7 +65,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		peer.StartServer(blobManager, listener)
+		peerServer.StartServer(listener)
 	})
 
 	wg.Wait()

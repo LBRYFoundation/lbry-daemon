@@ -21,15 +21,21 @@ type Manager struct {
 	sdCacheMu sync.RWMutex
 }
 
-func CreateServer(m *Manager) *http.Server {
-	contentServeMux := http.NewServeMux()
-	contentServeMux.HandleFunc("/", m.handleStream)
-
-	return &http.Server{Handler: contentServeMux}
+type StreamServer struct {
+	httpServer http.Server
 }
 
-func StartServer(contentServer *http.Server, listener net.Listener) {
-	err := contentServer.Serve(listener)
+func CreateServer(m *Manager) StreamServer {
+	contentServeMux := http.NewServeMux()
+	contentServeMux.HandleFunc("/stream/{sd_hash}", m.handleStream)
+
+	return StreamServer{
+		httpServer: http.Server{Handler: contentServeMux},
+	}
+}
+
+func (contentServer StreamServer) StartServer(listener net.Listener) {
+	err := contentServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting Stream server.")
 	}
@@ -43,33 +49,31 @@ func NewManager(dhtNode *dht.Node) *Manager {
 	}
 }
 
-// GetStreamingURL returns the local streaming URL for a given SD hash.
-func (m *Manager) GetStreamingURL(sdHash string, port int) string {
-	return fmt.Sprintf("http://localhost:%d/stream/%s", port, sdHash)
-}
-
-func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Incoming stream request")
-
-	sdHash := strings.TrimPrefix(r.URL.Path, "/stream/")
-	if sdHash == "" || len(sdHash) != blob.BlobHashLength {
-		http.Error(w, "invalid sd_hash", http.StatusBadRequest)
-		return
-	}
-
+func (m *Manager) handleStream(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
-	// CORS for frontend
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Access-Control-Allow-Headers", "Range")
-	w.Header().Set("Access-Control-Expose-Headers", "Content-Range, Content-Length, Accept-Ranges")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "Accept-Ranges, Content-Length, Content-Range")
 	w.Header().Set("Server", "LBRYd/"+info.Main.Version)
 
-	if r.Method == "OPTIONS" {
+	if strings.EqualFold(req.Method, "OPTIONS") {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
+	if strings.EqualFold(req.Method, "GET") {
+		sdHash := req.PathValue("sd_hash")
+
+		m.handleSDHash(w, req, sdHash)
+		return
+	}
+
+	http.Error(w, "HTTP method not allowed.", http.StatusMethodNotAllowed)
+}
+
+func (m *Manager) handleSDHash(w http.ResponseWriter, req *http.Request, sdHash string) {
 	// Get or download stream descriptor
 	sd, err := m.getDescriptor(sdHash)
 	if err != nil {
@@ -77,7 +81,7 @@ func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load stream", http.StatusBadGateway)
 		return
 	}
-	log.Printf("P2P STREAM: serving %s (%s)", sdHash[:12], r.Header.Get("Range"))
+	log.Printf("P2P STREAM: serving %s (%s)", sdHash[:12], req.Header.Get("Range"))
 
 	contentBlobs := sd.ContentBlobs()
 	if len(contentBlobs) == 0 {
@@ -95,10 +99,9 @@ func (m *Manager) handleStream(w http.ResponseWriter, r *http.Request) {
 	// Determine MIME type from file extension
 	mimeType := guessMIME(sd.SuggestedFileName, sd.StreamName)
 	w.Header().Set("Content-Type", mimeType)
-	w.Header().Set("Accept-Ranges", "bytes")
 
 	// Parse range header
-	rangeHeader := r.Header.Get("Range")
+	rangeHeader := req.Header.Get("Range")
 	var start, end int64
 	if rangeHeader != "" && strings.HasPrefix(rangeHeader, "bytes=") {
 		rangeParts := strings.TrimPrefix(rangeHeader, "bytes=")

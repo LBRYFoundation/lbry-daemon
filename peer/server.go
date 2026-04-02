@@ -7,18 +7,28 @@ import "lbry/daemon/blob"
 import "net"
 import "time"
 
-func StartServer(blobManager blob.BlobManager, listener net.Listener) {
+type PeerServer struct {
+	blobManager blob.BlobManager
+}
+
+func CreateServer(blobManager blob.BlobManager) PeerServer {
+	return PeerServer{
+		blobManager: blobManager,
+	}
+}
+
+func (peerServer PeerServer) StartServer(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting:", err)
 			continue
 		}
-		go handleConnection(conn, blobManager)
+		go peerServer.handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
+func (peerServer PeerServer) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second)) // Prevent hanging
 
@@ -41,7 +51,7 @@ func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 
 		requestedBlobsValue, hasRequestedBlobs := data["requested_blobs"]
 		if hasRequestedBlobs {
-			responseData["available_blobs"] = getAvailableBlobs(blobManager, requestedBlobsValue.([]string))
+			responseData["available_blobs"] = peerServer.getAvailableBlobs(requestedBlobsValue.([]string))
 		}
 
 		blobDataPaymentRateValue, hasBlobDataPaymentRate := data["blob_data_payment_rate"]
@@ -54,7 +64,7 @@ func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 
 		requestedBlobValue, hasRequestedBlob := data["requested_blob"]
 		if hasRequestedBlob {
-			incomingBlob, blobData = getRequestedBlob(blobManager, requestedBlobValue.(string))
+			incomingBlob, blobData = peerServer.getRequestedBlob(requestedBlobValue.(string))
 			responseData["incoming_blob"] = incomingBlob
 		}
 
@@ -65,11 +75,11 @@ func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 	}
 }
 
-func getAvailableBlobs(blobManager blob.BlobManager, requestedBlobs []string) []string {
+func (peerServer PeerServer) getAvailableBlobs(requestedBlobs []string) []string {
 	var availableBlobs []string
 
 	for _, requestedBlob := range requestedBlobs {
-		if blobManager.Has(requestedBlob) {
+		if peerServer.blobManager.Has(requestedBlob) {
 			availableBlobs = append(availableBlobs, requestedBlob)
 		}
 	}
@@ -82,9 +92,9 @@ func getBlobDataPaymentRate(blobDataPaymentRate float64) string {
 	return "RATE_UNSET"
 }
 
-func getRequestedBlob(blobManager blob.BlobManager, requestedBlob string) (map[string]any, []byte) {
-	if blobManager.Has(requestedBlob) {
-		blobData := blobManager.Get(requestedBlob)
+func (peerServer PeerServer) getRequestedBlob(requestedBlob string) (map[string]any, []byte) {
+	if peerServer.blobManager.Has(requestedBlob) {
+		blobData := peerServer.blobManager.Get(requestedBlob)
 		return map[string]any{
 			"blob_hash": requestedBlob,
 			"length":    len(blobData),

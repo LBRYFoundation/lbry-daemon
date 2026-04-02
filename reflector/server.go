@@ -7,18 +7,28 @@ import "lbry/daemon/blob"
 import "net"
 import "time"
 
-func StartServer(blobManager blob.BlobManager, listener net.Listener) {
+type ReflectorServer struct {
+	blobManager blob.BlobManager
+}
+
+func CreateServer(blobManager blob.BlobManager) ReflectorServer {
+	return ReflectorServer{
+		blobManager: blobManager,
+	}
+}
+
+func (reflectorServer ReflectorServer) StartServer(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting:", err)
 			continue
 		}
-		go handleConnection(conn, blobManager)
+		go reflectorServer.handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
+func (reflectorServer ReflectorServer) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second)) // Prevent hanging
 
@@ -78,7 +88,7 @@ func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 				return
 			}
 
-			err = blobManager.Set(blobHash, blobData, false)
+			err = reflectorServer.blobManager.Set(blobHash, blobData, false)
 
 			jsonEncoder.Encode(map[string]any{
 				"received_blob": err == nil,
@@ -110,7 +120,7 @@ func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 				return
 			}
 
-			err = blobManager.Set(sdBlobHash, sdBlobData, true)
+			err = reflectorServer.blobManager.Set(sdBlobHash, sdBlobData, true)
 
 			jsonEncoder.Encode(map[string]any{
 				"received_sd_blob": err == nil,

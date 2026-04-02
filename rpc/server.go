@@ -13,15 +13,21 @@ import "strings"
 
 import "google.golang.org/protobuf/encoding/protowire"
 
-func CreateServer() *http.Server {
+type RPCServer struct {
+	httpServer http.Server
+}
+
+func CreateServer() RPCServer {
 	rpcServeMux := http.NewServeMux()
 	rpcServeMux.HandleFunc("/", handleJSONRPC)
 
-	return &http.Server{Handler: rpcServeMux}
+	return RPCServer{
+		httpServer: http.Server{Handler: rpcServeMux},
+	}
 }
 
-func StartServer(rpcServer *http.Server, listener net.Listener) {
-	err := rpcServer.Serve(listener)
+func (rpcServer RPCServer) StartServer(listener net.Listener) {
+	err := rpcServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting RPC server.")
 	}
