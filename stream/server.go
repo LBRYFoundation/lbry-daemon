@@ -4,6 +4,7 @@ import "fmt"
 import "log"
 import "lbry/daemon/blob"
 import "lbry/daemon/dht"
+import "net"
 import "net/http"
 import "runtime/debug"
 import "strconv"
@@ -25,6 +26,13 @@ func CreateServer(m *Manager) *http.Server {
 	contentServeMux.HandleFunc("/", m.handleStream)
 
 	return &http.Server{Handler: contentServeMux}
+}
+
+func StartServer(contentServer *http.Server, listener net.Listener) {
+	err := contentServer.Serve(listener)
+	if err != nil && err != http.ErrServerClosed {
+		fmt.Println("Error when starting Stream server.")
+	}
 }
 
 func NewManager(dhtNode *dht.Node) *Manager {

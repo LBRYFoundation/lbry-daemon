@@ -20,6 +20,13 @@ func CreateServer() *http.Server {
 	return &http.Server{Handler: rpcServeMux}
 }
 
+func StartServer(rpcServer *http.Server, listener net.Listener) {
+	err := rpcServer.Serve(listener)
+	if err != nil && err != http.ErrServerClosed {
+		fmt.Println("Error when starting RPC server.")
+	}
+}
+
 func sendResultResponse(w http.ResponseWriter, result any) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"jsonrpc": "2.0",

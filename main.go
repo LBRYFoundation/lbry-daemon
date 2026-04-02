@@ -2,10 +2,11 @@ package main
 
 import "fmt"
 import "lbry/daemon/dht"
+import "lbry/daemon/peer"
 import "lbry/daemon/stream"
+import "lbry/daemon/reflector"
 import "lbry/daemon/rpc"
 import "net"
-import "net/http"
 import "strconv"
 import "sync"
 
@@ -13,6 +14,7 @@ var wg sync.WaitGroup
 
 func main() {
 	node, _ := dht.NewNode(4444)
+
 	rpcServer := rpc.CreateServer()
 	contentServer := stream.CreateServer(stream.NewManager(node))
 
@@ -24,12 +26,42 @@ func main() {
 
 	wg.Go(func() {
 		fmt.Println("Starting RPC server on port 5279.")
-		startHTTPServer(rpcServer, 5279)
+		listener, err := getTCPListener("", 5279)
+		if err != nil {
+			fmt.Println("Error when getting TCP listener.")
+		}
+		defer listener.Close()
+		rpc.StartServer(rpcServer, listener)
 	})
 
 	wg.Go(func() {
 		fmt.Println("Starting content server on port 5280.")
-		startHTTPServer(contentServer, 5280)
+		listener, err := getTCPListener("", 5280)
+		if err != nil {
+			fmt.Println("Error when getting TCP listener.")
+		}
+		defer listener.Close()
+		stream.StartServer(contentServer, listener)
+	})
+
+	wg.Go(func() {
+		fmt.Println("Starting reflector server on port 5566.")
+		listener, err := getTCPListener("", 5566)
+		if err != nil {
+			fmt.Println("Error when getting TCP listener.")
+		}
+		defer listener.Close()
+		reflector.StartServer(listener)
+	})
+
+	wg.Go(func() {
+		fmt.Println("Starting peer server on port 5567.")
+		listener, err := getTCPListener("", 5567)
+		if err != nil {
+			fmt.Println("Error when getting TCP listener.")
+		}
+		defer listener.Close()
+		peer.StartServer(listener)
 	})
 
 	wg.Wait()
@@ -37,14 +69,6 @@ func main() {
 	fmt.Println("All servers have stopped.")
 }
 
-func startHTTPServer(rpcServer *http.Server, port int) {
-	listener, err := net.Listen("tcp", net.JoinHostPort("", strconv.Itoa(port)))
-	if err != nil && err != http.ErrServerClosed {
-		fmt.Println("Error when starting listening.")
-	}
-
-	err = rpcServer.Serve(listener)
-	if err != nil && err != http.ErrServerClosed {
-		fmt.Println("Error when starting HTTP server.")
-	}
+func getTCPListener(hostname string, port int) (net.Listener, error) {
+	return net.Listen("tcp", net.JoinHostPort(hostname, strconv.Itoa(port)))
 }
