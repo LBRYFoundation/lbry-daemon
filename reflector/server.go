@@ -30,7 +30,6 @@ func handleConnection(conn net.Conn) {
 		var data map[string]any
 
 		err := jsonDecoder.Decode(&data)
-
 		if err != nil {
 			if err == io.EOF {
 				fmt.Println("Client disconnected")

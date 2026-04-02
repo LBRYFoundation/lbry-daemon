@@ -33,10 +33,48 @@ func handleConnection(conn net.Conn) {
 				fmt.Println("Client disconnected")
 				return
 			}
-			// TODO Handle error (return OR continue)
+			continue
 		}
 
-		fmt.Printf("%+v\n", data)
-		jsonEncoder.Encode(map[string]any{})
+		responseData := map[string]any{}
+
+		requestedBlobsValue, hasRequestedBlobs := data["requested_blobs"]
+		if hasRequestedBlobs {
+			responseData["available_blobs"] = getAvailableBlobs(requestedBlobsValue.([]string))
+		}
+
+		blobDataPaymentRateValue, hasBlobDataPaymentRate := data["blob_data_payment_rate"]
+		if hasBlobDataPaymentRate {
+			responseData["blob_data_payment_rate"] = getBlobDataPaymentRate(blobDataPaymentRateValue.(float64))
+		}
+
+		var incomingBlob map[string]any
+		var blobData []byte
+
+		requestedBlobValue, hasRequestedBlob := data["requested_blob"]
+		if hasRequestedBlob {
+			incomingBlob, blobData = getRequestedBlob(requestedBlobValue.(string))
+			responseData["incoming_blob"] = incomingBlob
+		}
+
+		jsonEncoder.Encode(responseData)
+		if blobData != nil {
+			conn.Write(blobData)
+		}
 	}
+}
+
+func getAvailableBlobs(requestedBlobs []string) []string {
+	// TODO
+	return []string{}
+}
+
+func getBlobDataPaymentRate(blobDataPaymentRate float64) string {
+	// TODO
+	return "RATE_UNSET"
+}
+
+func getRequestedBlob(requestedBlob string) (map[string]any, []byte) {
+	// TODO
+	return map[string]any{}, []byte{}
 }
