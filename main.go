@@ -15,9 +15,9 @@ var wg sync.WaitGroup
 
 func main() {
 	node, _ := dht.NewNode(4444)
+	//blob.NewManager(node)
 	blobManager := blob.BlobManager{
-		Blobs:      map[string][]byte{},
-		OldManager: blob.NewManager(node),
+		Blobs: map[string][]byte{},
 	}
 
 	rpcServer := rpc.CreateServer()

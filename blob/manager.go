@@ -6,7 +6,7 @@ import "net"
 import "strings"
 
 type BlobManager struct {
-	Blobs      map[string][]byte
+	Blobs map[string][]byte
 }
 
 // dhtNode   *dht.Node
