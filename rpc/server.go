@@ -19,11 +19,14 @@ type RPCServer struct {
 
 func CreateServer() RPCServer {
 	rpcServeMux := http.NewServeMux()
-	rpcServeMux.HandleFunc("/", handleJSONRPC)
 
-	return RPCServer{
+	server := RPCServer{
 		httpServer: http.Server{Handler: rpcServeMux},
 	}
+
+	rpcServeMux.HandleFunc("/", server.handleJSONRPC)
+
+	return server
 }
 
 func (rpcServer RPCServer) StartServer(listener net.Listener) {
@@ -50,7 +53,7 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 	})
 }
 
-func handleJSONRPC(w http.ResponseWriter, req *http.Request) {
+func (rpcServer RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")

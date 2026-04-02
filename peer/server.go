@@ -79,7 +79,8 @@ func (peerServer PeerServer) getAvailableBlobs(requestedBlobs []string) []string
 	var availableBlobs []string
 
 	for _, requestedBlob := range requestedBlobs {
-		if peerServer.blobManager.Has(requestedBlob) {
+		_, ok := peerServer.blobManager.Get(requestedBlob)
+		if ok {
 			availableBlobs = append(availableBlobs, requestedBlob)
 		}
 	}
@@ -93,8 +94,8 @@ func getBlobDataPaymentRate(blobDataPaymentRate float64) string {
 }
 
 func (peerServer PeerServer) getRequestedBlob(requestedBlob string) (map[string]any, []byte) {
-	if peerServer.blobManager.Has(requestedBlob) {
-		blobData := peerServer.blobManager.Get(requestedBlob)
+	blobData, ok := peerServer.blobManager.Get(requestedBlob)
+	if ok {
 		return map[string]any{
 			"blob_hash": requestedBlob,
 			"length":    len(blobData),
@@ -104,6 +105,6 @@ func (peerServer PeerServer) getRequestedBlob(requestedBlob string) (map[string]
 	return map[string]any{
 		"blob_hash": "",
 		"length":    0,
-		"error":     "Blob not found",
+		"error":     "Blob not found.",
 	}, nil
 }

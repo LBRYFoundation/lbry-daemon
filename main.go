@@ -14,11 +14,14 @@ import "sync"
 var wg sync.WaitGroup
 
 func main() {
-	blobManager := blob.BlobManager{}
 	node, _ := dht.NewNode(4444)
+	blobManager := blob.BlobManager{
+		Blobs:      map[string][]byte{},
+		OldManager: blob.NewManager(node),
+	}
 
 	rpcServer := rpc.CreateServer()
-	contentServer := stream.CreateServer(stream.NewManager(node))
+	contentServer := stream.CreateServer(blobManager)
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)
 
