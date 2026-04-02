@@ -3,21 +3,22 @@ package peer
 import "encoding/json"
 import "fmt"
 import "io"
+import "lbry/daemon/blob"
 import "net"
 import "time"
 
-func StartServer(listener net.Listener) {
+func StartServer(blobManager blob.BlobManager, listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting:", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleConnection(conn, blobManager)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second)) // Prevent hanging
 
@@ -40,7 +41,7 @@ func handleConnection(conn net.Conn) {
 
 		requestedBlobsValue, hasRequestedBlobs := data["requested_blobs"]
 		if hasRequestedBlobs {
-			responseData["available_blobs"] = getAvailableBlobs(requestedBlobsValue.([]string))
+			responseData["available_blobs"] = getAvailableBlobs(blobManager, requestedBlobsValue.([]string))
 		}
 
 		blobDataPaymentRateValue, hasBlobDataPaymentRate := data["blob_data_payment_rate"]
@@ -53,7 +54,7 @@ func handleConnection(conn net.Conn) {
 
 		requestedBlobValue, hasRequestedBlob := data["requested_blob"]
 		if hasRequestedBlob {
-			incomingBlob, blobData = getRequestedBlob(requestedBlobValue.(string))
+			incomingBlob, blobData = getRequestedBlob(blobManager, requestedBlobValue.(string))
 			responseData["incoming_blob"] = incomingBlob
 		}
 
@@ -64,9 +65,16 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func getAvailableBlobs(requestedBlobs []string) []string {
-	// TODO
-	return []string{}
+func getAvailableBlobs(blobManager blob.BlobManager, requestedBlobs []string) []string {
+	var availableBlobs []string
+
+	for _, requestedBlob := range requestedBlobs {
+		if blobManager.Has(requestedBlob) {
+			availableBlobs = append(availableBlobs, requestedBlob)
+		}
+	}
+
+	return availableBlobs
 }
 
 func getBlobDataPaymentRate(blobDataPaymentRate float64) string {
@@ -74,7 +82,18 @@ func getBlobDataPaymentRate(blobDataPaymentRate float64) string {
 	return "RATE_UNSET"
 }
 
-func getRequestedBlob(requestedBlob string) (map[string]any, []byte) {
-	// TODO
-	return map[string]any{}, []byte{}
+func getRequestedBlob(blobManager blob.BlobManager, requestedBlob string) (map[string]any, []byte) {
+	if blobManager.Has(requestedBlob) {
+		blobData := blobManager.Get(requestedBlob)
+		return map[string]any{
+			"blob_hash": requestedBlob,
+			"length":    len(blobData),
+		}, blobData
+	}
+
+	return map[string]any{
+		"blob_hash": "",
+		"length":    0,
+		"error":     "Blob not found",
+	}, nil
 }

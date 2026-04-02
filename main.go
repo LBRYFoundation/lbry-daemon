@@ -1,6 +1,7 @@
 package main
 
 import "fmt"
+import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "lbry/daemon/peer"
 import "lbry/daemon/stream"
@@ -13,6 +14,7 @@ import "sync"
 var wg sync.WaitGroup
 
 func main() {
+	blobManager := blob.BlobManager{}
 	node, _ := dht.NewNode(4444)
 
 	rpcServer := rpc.CreateServer()
@@ -51,7 +53,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		reflector.StartServer(listener)
+		reflector.StartServer(blobManager, listener)
 	})
 
 	wg.Go(func() {
@@ -61,7 +63,7 @@ func main() {
 			fmt.Println("Error when getting TCP listener.")
 		}
 		defer listener.Close()
-		peer.StartServer(listener)
+		peer.StartServer(blobManager, listener)
 	})
 
 	wg.Wait()

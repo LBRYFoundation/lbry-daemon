@@ -132,38 +132,3 @@ func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
 
 	return blobData, nil
 }
-
-// findJSONEnd finds the index of the closing '}' that ends the JSON object.
-// Handles nested braces.
-func findJSONEnd(data []byte) int {
-	depth := 0
-	inString := false
-	escaped := false
-	for i, b := range data {
-		if escaped {
-			escaped = false
-			continue
-		}
-		if b == '\\' && inString {
-			escaped = true
-			continue
-		}
-		if b == '"' {
-			inString = !inString
-			continue
-		}
-		if inString {
-			continue
-		}
-		if b == '{' {
-			depth++
-		}
-		if b == '}' {
-			depth--
-			if depth == 0 {
-				return i
-			}
-		}
-	}
-	return -1
-}

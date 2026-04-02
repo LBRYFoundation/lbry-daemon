@@ -3,21 +3,22 @@ package reflector
 import "encoding/json"
 import "fmt"
 import "io"
+import "lbry/daemon/blob"
 import "net"
 import "time"
 
-func StartServer(listener net.Listener) {
+func StartServer(blobManager blob.BlobManager, listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting:", err)
 			continue
 		}
-		go handleConnection(conn)
+		go handleConnection(conn, blobManager)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, blobManager blob.BlobManager) {
 	defer conn.Close()
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second)) // Prevent hanging
 
@@ -72,9 +73,12 @@ func handleConnection(conn net.Conn) {
 
 			blobData := make([]byte, blobSize)
 			_, err := io.ReadFull(conn, blobData)
+			if err != nil {
+				conn.Close()
+				return
+			}
 
-			// TODO Process blob data
-			fmt.Printf("BLOB [%d] (%s) = %+v\n", blobSize, blobHash, blobData)
+			err = blobManager.Set(blobHash, blobData, false)
 
 			jsonEncoder.Encode(map[string]any{
 				"received_blob": err == nil,
@@ -101,9 +105,12 @@ func handleConnection(conn net.Conn) {
 
 			sdBlobData := make([]byte, sdBlobSize)
 			_, err := io.ReadFull(conn, sdBlobData)
+			if err != nil {
+				conn.Close()
+				return
+			}
 
-			// TODO Process SD blob data
-			fmt.Printf("SD BLOB [%d] (%s) = %+v\n", sdBlobSize, sdBlobHash, string(sdBlobData))
+			err = blobManager.Set(sdBlobHash, sdBlobData, true)
 
 			jsonEncoder.Encode(map[string]any{
 				"received_sd_blob": err == nil,
