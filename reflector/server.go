@@ -26,12 +26,6 @@ func handleConnection(conn net.Conn) {
 
 	version := -1
 
-	var blobHash string
-	blobSize := -1
-
-	var sdBlobHash string
-	sdBlobSize := -1
-
 	for {
 		var data map[string]any
 
@@ -45,10 +39,10 @@ func handleConnection(conn net.Conn) {
 			continue
 		}
 
-		versionValue, hasVersion := data["version"].(int)
+		versionValue, hasVersion := data["version"]
 		if version == -1 {
 			if hasVersion {
-				version = versionValue
+				version = int(versionValue.(float64))
 				jsonEncoder.Encode(map[string]any{
 					"version": version,
 				})
@@ -58,52 +52,30 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		blobHashValue, hasBlobHash := data["blob_hash"].(string)
-		blobSizeValue, hasBlobSize := data["blob_size"].(int)
+		blobHashValue, hasBlobHash := data["blob_hash"]
+		blobSizeValue, hasBlobSize := data["blob_size"]
 
-		sdBlobHashValue, hasSDBlobHash := data["sd_blob_hash"].(string)
-		sdBlobSizeValue, hasSDBlobSize := data["sd_blob_size"].(int)
+		sdBlobHashValue, hasSDBlobHash := data["sd_blob_hash"]
+		sdBlobSizeValue, hasSDBlobSize := data["sd_blob_size"]
 
-		if blobHash == "" && version >= 0 {
-			if hasBlobHash && hasBlobSize {
-				if len(blobHashValue) != 96 || blobSizeValue <= 0 || blobSizeValue > 2097152 {
-					conn.Close()
-					return
-				}
+		if version >= 0 && hasBlobHash && hasBlobSize {
+			blobHash := blobHashValue.(string)
+			blobSize := int(blobSizeValue.(float64))
 
-				blobHash = blobHashValue
-				blobSize = blobSizeValue
-
-				jsonEncoder.Encode(map[string]any{
-					"send_blob": false, // TODO: Improve response
-				})
-				continue
+			if len(blobHash) != 96 || blobSize <= 0 || blobSize > 2097152 {
+				conn.Close()
+				return
 			}
-		}
 
-		if sdBlobHash == "" && version >= 1 {
-			if hasSDBlobHash && hasSDBlobSize {
-				if len(blobHashValue) != 96 || blobSizeValue <= 0 || blobSizeValue > 2097152 {
-					conn.Close()
-					return
-				}
+			jsonEncoder.Encode(map[string]any{
+				"send_blob": true, // TODO: Improve response
+			})
 
-				sdBlobHash = sdBlobHashValue
-				sdBlobSize = sdBlobSizeValue
-
-				jsonEncoder.Encode(map[string]any{
-					"send_sd_blob": false, // TODO: Improve response
-				})
-				continue
-			}
-		}
-
-		if blobHash != "" {
 			blobData := make([]byte, blobSize)
 			_, err := io.ReadFull(conn, blobData)
 
 			//TODO Process blob data
-			fmt.Printf("%+v\n", blobData)
+			fmt.Printf("BLOB = %+v\n", blobData)
 
 			jsonEncoder.Encode(map[string]any{
 				"received_blob": err == nil,
@@ -112,17 +84,29 @@ func handleConnection(conn net.Conn) {
 				conn.Close()
 				return
 			}
-
-			blobHash = ""
-			blobSize = -1
 			continue
+
 		}
-		if sdBlobHash != "" {
+
+		if version >= 1 && hasSDBlobHash && hasSDBlobSize {
+			sdBlobHash := sdBlobHashValue.(string)
+			sdBlobSize := int(sdBlobSizeValue.(float64))
+
+			if len(sdBlobHash) != 96 || sdBlobSize <= 0 || sdBlobSize > 2097152 {
+
+				conn.Close()
+				return
+			}
+
+			jsonEncoder.Encode(map[string]any{
+				"send_sd_blob": true, // TODO: Improve response
+			})
+
 			sdBlobData := make([]byte, sdBlobSize)
 			_, err := io.ReadFull(conn, sdBlobData)
 
 			//TODO Process SD blob data
-			fmt.Printf("%+v\n", sdBlobData)
+			fmt.Printf("SD BLOB = %+v\n", string(sdBlobData))
 
 			jsonEncoder.Encode(map[string]any{
 				"received_sd_blob": err == nil,
@@ -131,9 +115,6 @@ func handleConnection(conn net.Conn) {
 				conn.Close()
 				return
 			}
-
-			sdBlobHash = ""
-			sdBlobSize = -1
 			continue
 		}
 
