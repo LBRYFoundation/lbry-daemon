@@ -6,21 +6,23 @@ on:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm]
-    runs-on: ${{ matrix.os }}
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
       options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.variant.runner }}
     steps:
       - uses: actions/checkout@v6
-      - name: Set up QEMU for ARM builds
-        if: ${{ matrix.os == 'ubuntu-24.04-arm' }}
-        uses: docker/setup-qemu-action@v4
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
+          arch: ${{ matrix.variant.arch }}
           bundle: lbry-daemon.flatpak
           manifest-path: org.lbry.daemon.json
           verbose: true
