@@ -1,6 +1,7 @@
 # LBRY Daemon
 
 [![Go](https://github.com/LBRYFoundation/lbry-daemon/actions/workflows/go.yml/badge.svg)](https://github.com/LBRYFoundation/lbry-daemon/actions/workflows/go.yml)
+[![Docker Image CI](https://github.com/LBRYFoundation/lbry-daemon/actions/workflows/docker-image.yml/badge.svg)](https://github.com/LBRYFoundation/lbry-daemon/actions/workflows/docker-image.yml)
 [![Codecov](https://codecov.io/gh/LBRYFoundation/lbry-daemon/graph/badge.svg)](https://codecov.io/gh/LBRYFoundation/lbry-daemon)
 ![Snapcraft Version](https://img.shields.io/snapcraft/v/lbry-daemon/latest/stable?logo=snapcraft)
 ![WinGet Package Version](https://img.shields.io/winget/v/LBRY.Daemon)
