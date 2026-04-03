@@ -651,6 +651,9 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 		txIDs := []string{}
 
 		for _, claim := range resolutionData {
+			if claim == nil {
+				continue
+			}
 			claimMap := claim.(map[int]any)
 			txidValue, txidOk := claimMap[1]
 			if txidOk {

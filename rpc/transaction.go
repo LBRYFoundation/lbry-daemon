@@ -197,7 +197,10 @@ func parseClaimScript(script []byte) (*ClaimScript, error) {
 		if n2 == 0 {
 			return nil, fmt.Errorf("failed to read claim data")
 		}
-		return &ClaimScript{Name: string(nameBytes), ClaimData: claimData}, nil
+		return &ClaimScript{
+		Name: string(nameBytes),
+		ClaimData: claimData,
+		}, nil
 
 	case opUpdateClaim:
 		// OP_UPDATE_CLAIM <name> <claim_id_20b> <claim_data> OP_2DROP OP_2DROP
@@ -214,8 +217,10 @@ func parseClaimScript(script []byte) (*ClaimScript, error) {
 			return nil, fmt.Errorf("failed to read claim data")
 		}
 		return &ClaimScript{
-			Name: string(nameBytes), ClaimID: claimIDBytes,
-			ClaimData: claimData, IsUpdate: true,
+			Name: string(nameBytes),
+			ClaimID: claimIDBytes,
+			ClaimData: claimData,
+			IsUpdate: true,
 		}, nil
 
 	default:
@@ -241,11 +246,11 @@ func reverseBytes(b []byte) []byte {
 }
 
 // computeClaimID computes claim_id from tx_hash (internal byte order) and output index.
-func computeClaimID(txHash []byte, nout uint32) string {
+func ComputeClaimID(txHash []byte, nout uint32) []byte {
 	buf := make([]byte, 36)
 	copy(buf, txHash)
 	binary.BigEndian.PutUint32(buf[32:], nout)
-	return hex.EncodeToString(reverseBytes(hash160(buf)))
+	return reverseBytes(hash160(buf))
 }
 
 // claimIDFromBytes converts raw claim_id bytes (from script) to display hex.

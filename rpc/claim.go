@@ -32,11 +32,30 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 		}
 	}
 
+	if len(claimScript.ClaimData) < 85 {
+		// TODO: Older schemes
+		return claim
+	}
+
 	decodedProtobufClaimData, _ := DecodeRawProto(claimScript.ClaimData[85:])
 
-	claimID := claimScript.ClaimID
-	slices.Reverse(claimID)
-	claim["claim_id"] = hex.EncodeToString(claimID)
+		noutValue, noutOk := protobuf[2]
+    	if noutOk {
+    		nout := noutValue.(uint64)
+    		claim["nout"] = nout
+    	}
+
+    		claimID := claimScript.ClaimID
+        	if claimID == nil{
+        	        var nout uint32
+        	        noutValue, ok := noutValue.(uint32)
+        	        if ok{
+        	            nout = noutValue
+        	        }
+        		    claimID = ComputeClaimID(txidValue.([]byte),nout)
+        	}
+        	//slices.Reverse(claimID)
+        	claim["claim_id"] = hex.EncodeToString(claimID)
 
 	heightValue, heightOk := protobuf[3]
 	if heightOk {
@@ -51,14 +70,18 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 
 		shortURLValue, shortURLOk := meta[3]
 		if shortURLOk {
-			shortURL := string(shortURLValue.([]uint8))
-			claim["short_url"] = "lbry://" + shortURL
+			shortURL, ok := shortURLValue.([]uint8)
+			if ok {
+				claim["short_url"] = "lbry://" + string(shortURL)
+			}
 		}
 
 		canonicalURLValue, canonicalURLOk := meta[4]
 		if canonicalURLOk {
-			canonicalURL := string(canonicalURLValue.([]uint8))
-			claim["canonical_url"] = "lbry://" + canonicalURL
+			canonicalURL, ok := canonicalURLValue.([]uint8)
+			if ok {
+				claim["canonical_url"] = "lbry://" + string(canonicalURL)
+			}
 		}
 
 		isControllingValue, isControllingOk := meta[5]
@@ -206,10 +229,16 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 	tagsValue, tagsOk := decodedProtobufClaimData[11]
 	if tagsOk {
 		var tags []string
-		for _, tagValue := range tagsValue.([]any) {
-			tags = append(tags, string(tagValue.([]uint8)))
+		_, ok := tagsValue.([]any)
+		if ok {
+			for _, tagValue := range tagsValue.([]any) {
+				tag, ok := tagValue.([]uint8)
+				if ok {
+					tags = append(tags, string(tag))
+				}
+			}
+			claimValue["tags"] = tags
 		}
-		claimValue["tags"] = tags
 	}
 
 	claim["value"] = claimValue
