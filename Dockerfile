@@ -1,0 +1,13 @@
+FROM golang:alpine
+
+COPY . .
+
+RUN go build -o lbryd
+
+EXPOSE 4444/udp
+EXPOSE 5279
+EXPOSE 5280
+EXPOSE 5566
+EXPOSE 5567
+
+ENTRYPOINT ["lbryd"]
