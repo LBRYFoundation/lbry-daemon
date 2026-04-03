@@ -28,7 +28,6 @@
       ],
       "sources": [
         {
-          "dest": ".",
           "path": ".",
           "type": "dir"
         },
