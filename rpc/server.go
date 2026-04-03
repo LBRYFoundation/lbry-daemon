@@ -513,7 +513,75 @@ func handleJSONRPCMessageFileSetStatus(w http.ResponseWriter, params any) {
 
 func handleJSONRPCMessageGet(w http.ResponseWriter, params any) {
 	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	var paramsMap map[string]any = params.(map[string]any)
+
+	uri, _ := paramsMap["uri"].(string)
+
+	resolveResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      rand.Int() + 1,
+		"method":  "blockchain.claimtrie.resolve",
+		"params":  []string{uri},
+	})
+
+	var resolutions map[string]any = map[string]any{}
+
+	_, resultIsString := resolveResp["result"].(string)
+	if resultIsString {
+		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
+
+		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+
+		var resolutionData []any
+
+		_, okResolution := decodedProtobuf[1].([]any)
+		if okResolution {
+			resolutionData = decodedProtobuf[1].([]any)
+		} else {
+			resolutionData = []any{decodedProtobuf[1]}
+		}
+
+		txIDs := []string{}
+
+		for _, claim := range resolutionData {
+			claimMap := claim.(map[int]any)
+			txidValue, txidOk := claimMap[1]
+			if txidOk {
+				txidBytes := txidValue.([]byte)
+				slices.Reverse(txidBytes)
+				txID := hex.EncodeToString(txidBytes)
+				txIDs = append(txIDs, txID)
+			}
+		}
+
+		transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.get_batch",
+			"params":  txIDs,
+		})
+
+		transactionData := transactionResp["result"].(map[string]any)
+
+		for _, claim := range resolutionData {
+			claimMap, ok := claim.(map[int]any)
+			if ok {
+				item := convertProtobufToClaim(claimMap, transactionData)
+
+				resolutionKey := uri
+				resolutions[resolutionKey] = item
+			}
+
+		}
+	}
+
+	sdHash := resolutions[uri].(map[string]any)["value"].(map[string]any)["source"].(map[string]any)["sd_hash"].(string)
+
+	streamingURL := "http://localhost:5280/stream/" + sdHash
+
+	sendResultResponse(w, map[string]any{
+		"streaming_url": streamingURL,
+	})
 }
 
 func handleJSONRPCMessagePeerList(w http.ResponseWriter, params any) {
