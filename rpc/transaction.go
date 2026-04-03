@@ -198,8 +198,8 @@ func parseClaimScript(script []byte) (*ClaimScript, error) {
 			return nil, fmt.Errorf("failed to read claim data")
 		}
 		return &ClaimScript{
-		Name: string(nameBytes),
-		ClaimData: claimData,
+			Name:      string(nameBytes),
+			ClaimData: claimData,
 		}, nil
 
 	case opUpdateClaim:
@@ -217,10 +217,10 @@ func parseClaimScript(script []byte) (*ClaimScript, error) {
 			return nil, fmt.Errorf("failed to read claim data")
 		}
 		return &ClaimScript{
-			Name: string(nameBytes),
-			ClaimID: claimIDBytes,
+			Name:      string(nameBytes),
+			ClaimID:   claimIDBytes,
 			ClaimData: claimData,
-			IsUpdate: true,
+			IsUpdate:  true,
 		}, nil
 
 	default:

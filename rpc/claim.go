@@ -39,23 +39,23 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 
 	decodedProtobufClaimData, _ := DecodeRawProto(claimScript.ClaimData[85:])
 
-		noutValue, noutOk := protobuf[2]
-    	if noutOk {
-    		nout := noutValue.(uint64)
-    		claim["nout"] = nout
-    	}
+	noutValue, noutOk := protobuf[2]
+	if noutOk {
+		nout := noutValue.(uint64)
+		claim["nout"] = nout
+	}
 
-    		claimID := claimScript.ClaimID
-        	if claimID == nil{
-        	        var nout uint32
-        	        noutValue, ok := noutValue.(uint32)
-        	        if ok{
-        	            nout = noutValue
-        	        }
-        		    claimID = ComputeClaimID(txidValue.([]byte),nout)
-        	}
-        	//slices.Reverse(claimID)
-        	claim["claim_id"] = hex.EncodeToString(claimID)
+	claimID := claimScript.ClaimID
+	if claimID == nil {
+		var nout uint32
+		noutValue, ok := noutValue.(uint32)
+		if ok {
+			nout = noutValue
+		}
+		claimID = ComputeClaimID(txidValue.([]byte), nout)
+	}
+	//slices.Reverse(claimID)
+	claim["claim_id"] = hex.EncodeToString(claimID)
 
 	heightValue, heightOk := protobuf[3]
 	if heightOk {
