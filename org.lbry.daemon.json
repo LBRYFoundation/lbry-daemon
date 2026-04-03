@@ -28,6 +28,11 @@
       ],
       "sources": [
         {
+          "dest": ".",
+          "path": ".",
+          "type": "dir"
+        },
+        {
           "dest": "vendor",
           "path": "modules.txt",
           "type": "file"
