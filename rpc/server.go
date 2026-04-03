@@ -2,6 +2,7 @@ package rpc
 
 import "bufio"
 import "encoding/base64"
+import "encoding/hex"
 import "encoding/json"
 import "fmt"
 import "math"
@@ -9,6 +10,7 @@ import "math/rand"
 import "net"
 import "net/http"
 import "runtime/debug"
+import "slices"
 import "strconv"
 import "strings"
 
@@ -409,14 +411,39 @@ func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
 	decodedBase64, _ := base64.StdEncoding.DecodeString(searchResp["result"].(string))
 	decodedProtobuf, _ := DecodeRawProto(decodedBase64)
 
+	claims, ok := decodedProtobuf[1].([]any)
+
+	txIDs := []string{}
+
+	if ok {
+		for _, claim := range claims {
+			claimMap := claim.(map[int]any)
+			txidValue, txidOk := claimMap[1]
+			if txidOk {
+				txidBytes := txidValue.([]byte)
+				slices.Reverse(txidBytes)
+				txID := hex.EncodeToString(txidBytes)
+				txIDs = append(txIDs, txID)
+			}
+		}
+	}
+
+	transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      rand.Int() + 1,
+		"method":  "blockchain.transaction.get_batch",
+		"params":  txIDs,
+	})
+
+	transactionData := transactionResp["result"].(map[string]any)
+
 	var items []map[string]any = []map[string]any{}
 
-	claims, ok := decodedProtobuf[1].([]any)
 	if ok {
 		for _, claim := range claims {
 			claimMap := claim.(map[int]any)
 
-			item := convertProtobufToClaim(claimMap)
+			item := convertProtobufToClaim(claimMap, transactionData)
 
 			items = append(items, item)
 		}
@@ -541,6 +568,7 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 	_, resultIsString := resolveResp["result"].(string)
 	if resultIsString {
 		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
+
 		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
 
 		var resolutionData []any
@@ -552,10 +580,32 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 			resolutionData = []any{decodedProtobuf[1]}
 		}
 
+		txIDs := []string{}
+
+		for _, claim := range resolutionData {
+			claimMap := claim.(map[int]any)
+			txidValue, txidOk := claimMap[1]
+			if txidOk {
+				txidBytes := txidValue.([]byte)
+				slices.Reverse(txidBytes)
+				txID := hex.EncodeToString(txidBytes)
+				txIDs = append(txIDs, txID)
+			}
+		}
+
+		transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.get_batch",
+			"params":  txIDs,
+		})
+
+		transactionData := transactionResp["result"].(map[string]any)
+
 		for index, claim := range resolutionData {
 			claimMap, ok := claim.(map[int]any)
 			if ok {
-				item := convertProtobufToClaim(claimMap)
+				item := convertProtobufToClaim(claimMap, transactionData)
 
 				resolutionKey := urls[index].(string)
 				resolutions[resolutionKey] = item
