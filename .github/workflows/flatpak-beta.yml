@@ -7,23 +7,20 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      options: --privileged
     steps:
       - uses: actions/checkout@v6
-      - name: Install Flatpak
-        run: sudo apt install flatpak flatpak-builder
-      - name: Setup Flatpak
-        run: |
-          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-          flatpak install flathub org.freedesktop.Platform//24.08 -y
-          flatpak install flathub org.freedesktop.Sdk//24.08 -y
-          flatpak install flathub org.freedesktop.Sdk.Extension.golang//24.08 -y
-      - name: Build Flatpak
-        run: flatpak-builder --repo=repo --force-clean build-dir org.lbry.daemon.json
-      - name: Build Bundle
-        run: flatpak build-bundle repo lbry-daemon.flatpak org.lbry.daemon
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: lbry-daemon.flatpak
+          manifest-path: org.lbry.daemon.json
+          verbose: true
       - name: Upload Flatpak (x86)
         if: ${{ matrix.os == 'ubuntu-24.04' }}
         uses: actions/upload-artifact@v7
