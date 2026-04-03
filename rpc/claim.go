@@ -445,3 +445,19 @@ func guessValueType(m map[string]any) string {
 	}
 	return ""
 }
+
+func convertProtobufToClaim(protobuf map[int]any) map[string]any {
+	claim := map[string]any{
+		"canonical_url": "lbry://one",
+		"claim_id":      "e0e99956966e1ac7b468bc2bb5430a1841b048e1",
+		"name":          "Some Claim",
+		"value": map[string]any{
+			"thumbnail": map[string]any{
+				"url": "https://spee.ch/d/f3b724e6ff579f07.png",
+			},
+		},
+		"_": protobuf,
+	}
+
+	return claim
+}

@@ -5,6 +5,7 @@ import "encoding/base64"
 import "encoding/json"
 import "fmt"
 import "math"
+import "math/rand"
 import "net"
 import "net/http"
 import "runtime/debug"
@@ -400,7 +401,7 @@ func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
 	// Relaxed
 	searchResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
 		"jsonrpc": "2.0",
-		"id":      "123",
+		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.search",
 		"params":  params,
 	})
@@ -414,14 +415,8 @@ func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
 	if ok {
 		for _, claim := range claims {
 			claimMap := claim.(map[int]any)
-			claimMap7 := (claimMap[7]).(map[int]any)
 
-			uriBase64 := claimMap7[4].([]uint8)
-			uri := string(uriBase64)
-
-			item := map[string]any{
-				"canonical_url": "lbry://" + uri,
-			}
+			item := convertProtobufToClaim(claimMap)
 
 			items = append(items, item)
 		}
@@ -536,7 +531,7 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 
 	resolveResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
 		"jsonrpc": "2.0",
-		"id":      "123",
+		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.resolve",
 		"params":  urls,
 	})
@@ -558,29 +553,10 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 		}
 
 		for index, claim := range resolutionData {
-			var item map[string]any
-
 			claimMap, ok := claim.(map[int]any)
 			if ok {
-				claimMap7 := (claimMap[7]).(map[int]any)
+				item := convertProtobufToClaim(claimMap)
 
-				uriBase64 := claimMap7[4].([]uint8)
-				uri := string(uriBase64)
-
-				item = map[string]any{
-					"canonical_url": "lbry://" + uri,
-					"claim_id":      "e0e99956966e1ac7b468bc2bb5430a1841b048e1",
-					"name":          "Some Claim: " + uri,
-					"value": map[string]any{
-						"thumbnail": map[string]any{
-							"url": "https://spee.ch/d/f3b724e6ff579f07.png",
-						},
-					},
-					"_": claimMap,
-				}
-			}
-
-			if ok {
 				resolutionKey := urls[index].(string)
 				resolutions[resolutionKey] = item
 			}

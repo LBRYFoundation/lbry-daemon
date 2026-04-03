@@ -73,6 +73,8 @@ func (contentServer StreamServer) handleSDHash(w http.ResponseWriter, req *http.
 		return
 	}
 
+	// TODO: Reimplement "Range" header
+
 	var concat []byte
 
 	key := streamDescriptor["key"].(string)
