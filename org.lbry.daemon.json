@@ -41,14 +41,14 @@
           "sha256": "90ef99675e16b3e5105a80d93007faaf5de989c21fa5a47339b5062e72320c9e",
           "strip-components": 3,
           "type": "archive",
-          "url": "https://proxy.golang.org/golang.org\\x\\crypto\\@v\\v0.53.0.zip"
+          "url": "https://proxy.golang.org/golang.org/x/crypto/@v/v0.53.0.zip"
         },
         {
           "dest": "vendor/google.golang.org/protobuf",
           "sha256": "14983d36c56a814ed91b6d652f2b8f895baba1b84eb43b28a0b132c8637cd274",
           "strip-components": 2,
           "type": "archive",
-          "url": "https://proxy.golang.org/google.golang.org\\protobuf\\@v\\v1.36.11.zip"
+          "url": "https://proxy.golang.org/google.golang.org/protobuf/@v/v1.36.11.zip"
         }
       ]
     }

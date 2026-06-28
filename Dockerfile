@@ -8,7 +8,7 @@ FROM alpine
 
 USER 1000
 
-COPY --from=builder lbryd .
+COPY --from=builder /go/lbryd .
 
 EXPOSE 4444/udp
 EXPOSE 5279
