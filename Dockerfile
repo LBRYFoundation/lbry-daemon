@@ -1,8 +1,14 @@
-FROM golang:alpine
+FROM golang:alpine AS builder
 
 COPY . .
 
 RUN go build -o lbryd
+
+FROM alpine
+
+USER 1000
+
+COPY --from=builder lbryd .
 
 EXPOSE 4444/udp
 EXPOSE 5279
