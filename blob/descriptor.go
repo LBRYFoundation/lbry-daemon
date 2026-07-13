@@ -1,10 +1,14 @@
 package blob
 
-import "crypto/aes"
-import "crypto/cipher"
-import "encoding/hex"
-import "encoding/json"
-import "fmt"
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"math"
+	"unicode/utf8"
+)
 
 // StreamDescriptor is the parsed SD blob JSON.
 type StreamDescriptor struct {
@@ -25,6 +29,15 @@ type BlobInfo struct {
 
 // ParseDescriptor parses SD blob JSON bytes into a StreamDescriptor.
 func ParseDescriptor(data []byte) (*StreamDescriptor, error) {
+	if len(data) == 0 {
+		return nil, fmt.Errorf("descriptor: empty blob")
+	}
+	if len(data) > MaxStreamDescriptorSize {
+		return nil, fmt.Errorf(
+			"descriptor: size %d exceeds the resource limit of %d bytes",
+			len(data), MaxStreamDescriptorSize,
+		)
+	}
 	var sd StreamDescriptor
 	if err := json.Unmarshal(data, &sd); err != nil {
 		return nil, fmt.Errorf("descriptor: parse: %w", err)
@@ -36,6 +49,117 @@ func ParseDescriptor(data []byte) (*StreamDescriptor, error) {
 		return nil, fmt.Errorf("descriptor: no blobs")
 	}
 	return &sd, nil
+}
+
+// DecodeDescriptor verifies the content-addressed SD blob and applies all
+// structural checks before it can be used to allocate or download data blobs.
+func DecodeDescriptor(sdHash string, data []byte) (*StreamDescriptor, error) {
+	if !canonicalBlobHash(sdHash) {
+		return nil, fmt.Errorf("descriptor: invalid sd hash %q", sdHash)
+	}
+	if len(data) == 0 || len(data) > MaxStreamDescriptorSize {
+		_, err := ParseDescriptor(data)
+		return nil, err
+	}
+	if hashBytes(data) != sdHash {
+		return nil, fmt.Errorf("descriptor: sd blob hash does not match %s", sdHash[:12])
+	}
+	descriptor, err := ParseDescriptor(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateDescriptor(descriptor); err != nil {
+		return nil, err
+	}
+	return descriptor, nil
+}
+
+// ValidateDescriptor applies the structural and stream-hash checks performed
+// by the pinned SDK when an SD blob is loaded.
+func ValidateDescriptor(descriptor *StreamDescriptor) error {
+	if descriptor == nil || len(descriptor.Blobs) == 0 {
+		return fmt.Errorf("descriptor: no blobs")
+	}
+	if len(descriptor.Blobs) > MaxStreamDescriptorBlobs {
+		return fmt.Errorf(
+			"descriptor: %d blobs exceeds the resource limit of %d",
+			len(descriptor.Blobs), MaxStreamDescriptorBlobs,
+		)
+	}
+	key, err := hex.DecodeString(descriptor.Key)
+	if err != nil || len(key) != aes.BlockSize {
+		return fmt.Errorf("descriptor: key must be a %d-byte hex value", aes.BlockSize)
+	}
+	last := len(descriptor.Blobs) - 1
+	var total int64
+	for index, item := range descriptor.Blobs {
+		iv, err := hex.DecodeString(item.IV)
+		if err != nil || len(iv) != aes.BlockSize {
+			return fmt.Errorf("descriptor: blob %d iv must be a %d-byte hex value", index, aes.BlockSize)
+		}
+		if item.BlobNum != index {
+			return fmt.Errorf("descriptor: stream contains out of order or skipped blobs")
+		}
+		if index < last && item.Length == 0 {
+			return fmt.Errorf("descriptor: contains zero-length data blob")
+		}
+		if index < last && item.BlobHash == "" {
+			return fmt.Errorf("descriptor: data blob %d has no hash", index)
+		}
+		if index < last && (item.Length < aes.BlockSize || item.Length > MaxBlobSize || item.Length%aes.BlockSize != 0) {
+			return fmt.Errorf(
+				"descriptor: blob %d length %d must be AES-aligned and between %d and %d bytes",
+				index, item.Length, aes.BlockSize, MaxBlobSize,
+			)
+		}
+		if index < last && !canonicalBlobHash(item.BlobHash) {
+			return fmt.Errorf("descriptor: data blob %d has an invalid hash", index)
+		}
+		if index < last {
+			plainUpperBound := int64(item.Length - 1)
+			if total > math.MaxInt64-plainUpperBound {
+				return fmt.Errorf("descriptor: stream size exceeds the resource limit")
+			}
+			total += plainUpperBound
+		}
+	}
+	terminator := descriptor.Blobs[last]
+	if terminator.Length != 0 {
+		return fmt.Errorf("descriptor: does not end with a zero-length blob")
+	}
+	if terminator.BlobHash != "" {
+		return fmt.Errorf("descriptor: stream terminator blob should not have a hash")
+	}
+	encoded, err := MarshalDescriptor(descriptor)
+	if err != nil {
+		return fmt.Errorf("descriptor: encode resource check: %w", err)
+	}
+	if len(encoded) > MaxStreamDescriptorSize {
+		return fmt.Errorf(
+			"descriptor: encoded size %d exceeds the resource limit of %d bytes",
+			len(encoded), MaxStreamDescriptorSize,
+		)
+	}
+	normalized := *descriptor
+	normalizeMetadata := func(source string) (string, error) {
+		decoded, err := hex.DecodeString(source)
+		if err != nil || !utf8.Valid(decoded) {
+			return "", fmt.Errorf("descriptor: invalid hex-encoded stream metadata")
+		}
+		return hex.EncodeToString(decoded), nil
+	}
+	normalized.StreamName, err = normalizeMetadata(descriptor.StreamName)
+	if err != nil {
+		return err
+	}
+	normalized.SuggestedFileName, err = normalizeMetadata(descriptor.SuggestedFileName)
+	if err != nil {
+		return err
+	}
+	if calculateCreatedStreamHash(&normalized) != descriptor.StreamHash {
+		return fmt.Errorf("descriptor: stream hash does not match stream metadata")
+	}
+	return nil
 }
 
 // ContentBlobs returns only the data blobs (excludes the terminator blob with length=0).

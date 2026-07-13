@@ -1,21 +1,28 @@
 package blob
 
-import "bufio"
-import "bytes"
-import "crypto/sha512"
-import "encoding/hex"
-import "encoding/json"
-import "fmt"
-import "io"
-import "net"
-import "strconv"
-import "time"
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/sha512"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"strconv"
+	"time"
+)
 
 const (
-	MaxBlobSize     = 2 * 1024 * 1024 // 2 MiB
-	BlobHashLength  = 96              // SHA-384 hex = 96 chars
-	DownloadTimeout = 30 * time.Second
-	ConnectTimeout  = 10 * time.Second
+	MaxBlobSize               = 2 * 1024 * 1024 // 2 MiB
+	MaxStreamDescriptorSize   = MaxBlobSize
+	MaxStreamDescriptorBlobs  = 12_000
+	MaxBlobResponseHeaderSize = 64 * 1024
+	BlobHashLength            = 96 // SHA-384 hex = 96 chars
+	DownloadTimeout           = 30 * time.Second
+	ConnectTimeout            = 10 * time.Second
 )
 
 // BlobRequest is the JSON request sent to a blob exchange peer.
@@ -41,13 +48,37 @@ type IncomingBlob struct {
 // DownloadBlob downloads a single blob from a peer by TCP.
 // Returns the raw (encrypted) blob bytes.
 func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
+	return DownloadBlobContext(context.Background(), ip, tcpPort, blobHash)
+}
+
+// DownloadBlobContext downloads a single blob from a peer by TCP and closes
+// the connection promptly when the context is canceled.
+func DownloadBlobContext(ctx context.Context, ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	addr := net.JoinHostPort(ip.String(), strconv.Itoa(tcpPort))
-	conn, err := net.DialTimeout("tcp", addr, ConnectTimeout)
+	dialer := net.Dialer{Timeout: ConnectTimeout}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("blob: connect %s: %w", addr, err)
 	}
 	defer conn.Close()
-	conn.SetDeadline(time.Now().Add(DownloadTimeout))
+	stopCancellation := context.AfterFunc(ctx, func() {
+		_ = conn.SetDeadline(time.Now())
+		_ = conn.Close()
+	})
+	defer stopCancellation()
+	deadline := time.Now().Add(DownloadTimeout)
+	if contextDeadline, ok := ctx.Deadline(); ok && contextDeadline.Before(deadline) {
+		deadline = contextDeadline
+	}
+	if err := conn.SetDeadline(deadline); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, fmt.Errorf("blob: set connection deadline: %w", err)
+	}
 
 	// Send request
 	req := BlobRequest{
@@ -57,6 +88,9 @@ func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
 	}
 	reqBytes, _ := json.Marshal(req)
 	if _, err := conn.Write(reqBytes); err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		return nil, fmt.Errorf("blob: write request: %w", err)
 	}
 
@@ -73,9 +107,15 @@ func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
 	for !jsonDone {
 		b, err := reader.ReadByte()
 		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return nil, ctxErr
+			}
 			return nil, fmt.Errorf("blob: read response: %w", err)
 		}
 		jsonBuf.WriteByte(b)
+		if jsonBuf.Len() > MaxBlobResponseHeaderSize {
+			return nil, fmt.Errorf("blob: response header exceeds %d bytes", MaxBlobResponseHeaderSize)
+		}
 
 		if escaped {
 			escaped = false
@@ -114,12 +154,21 @@ func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
 	if resp.IncomingBlob == nil {
 		return nil, fmt.Errorf("blob: peer has no data for %s", blobHash[:12])
 	}
+	if err := validateIncomingBlob(resp.IncomingBlob, blobHash); err != nil {
+		return nil, err
+	}
 
 	// Read exact number of blob bytes
 	blobData := make([]byte, resp.IncomingBlob.Length)
 	_, err = io.ReadFull(reader, blobData)
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		return nil, fmt.Errorf("blob: read blob data: %w", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	// Verify hash
@@ -131,4 +180,17 @@ func DownloadBlob(ip net.IP, tcpPort int, blobHash string) ([]byte, error) {
 	}
 
 	return blobData, nil
+}
+
+func validateIncomingBlob(incoming *IncomingBlob, requestedHash string) error {
+	if incoming == nil {
+		return errors.New("blob: response has no incoming blob")
+	}
+	if incoming.BlobHash != requestedHash {
+		return fmt.Errorf("blob: peer offered unexpected blob %q", incoming.BlobHash)
+	}
+	if incoming.Length <= 0 || incoming.Length > MaxBlobSize {
+		return fmt.Errorf("blob: peer length %d exceeds the resource limit", incoming.Length)
+	}
+	return nil
 }
