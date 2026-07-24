@@ -1,0 +1,127 @@
+package wallet
+
+import (
+	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/unicode/norm"
+)
+
+type claimNameDecomposedRune struct {
+	value rune
+	ccc   uint8
+}
+
+var claimNameCaseFolder = cases.Fold()
+
+// normalizeClaimName matches lbry.schema.url.normalize_name from Python 3.11:
+// unicodedata.normalize("NFD", name).casefold().
+func normalizeClaimName(name string) string {
+	decomposed := make([]claimNameDecomposedRune, 0, len(name))
+	for _, value := range name {
+		if isPostUnicode14ClaimNameAssignment(value) {
+			decomposed = appendCanonicalClaimNameRune(decomposed, value, 0)
+			continue
+		}
+
+		// Per-code-point normalization cannot reach x/text's 30 non-starter
+		// stream-safe limit. Reordering across code points is performed below.
+		for _, part := range norm.NFD.String(string(value)) {
+			ccc := norm.NFD.PropertiesString(string(part)).CCC()
+			decomposed = appendCanonicalClaimNameRune(decomposed, part, ccc)
+		}
+	}
+
+	var normalized strings.Builder
+	normalized.Grow(len(name))
+	for _, character := range decomposed {
+		if isPostUnicode14ClaimNameAssignment(character.value) {
+			normalized.WriteRune(character.value)
+			continue
+		}
+		normalized.WriteString(claimNameCaseFolder.String(string(character.value)))
+	}
+	return normalized.String()
+}
+
+func appendCanonicalClaimNameRune(
+	characters []claimNameDecomposedRune, value rune, ccc uint8,
+) []claimNameDecomposedRune {
+	characters = append(characters, claimNameDecomposedRune{value: value, ccc: ccc})
+	if ccc == 0 {
+		return characters
+	}
+
+	// Canonical ordering is stable: equal classes retain input order, and a
+	// class-zero starter terminates the insertion scan.
+	position := len(characters) - 1
+	for position > 0 && characters[position-1].ccc > ccc {
+		characters[position-1], characters[position] = characters[position], characters[position-1]
+		position--
+	}
+	return characters
+}
+
+// Python 3.11 embeds Unicode 14. x/text v0.38 uses newer tables, so code
+// points first assigned in Unicode 15 through 17 must retain Python's
+// unassigned behavior: identity case folding, no decomposition, and CCC zero.
+// These ranges are DerivedAge.txt entries with Age 15.0 through 17.0.
+var postUnicode14ClaimNameAssignments = [][2]rune{
+	// Unicode 15.0.
+	{0x0cf3, 0x0cf3}, {0x0ece, 0x0ece}, {0x10efd, 0x10eff},
+	{0x1123f, 0x11241}, {0x11b00, 0x11b09}, {0x11f00, 0x11f10},
+	{0x11f12, 0x11f3a}, {0x11f3e, 0x11f59}, {0x1342f, 0x1342f},
+	{0x13439, 0x13455}, {0x1b132, 0x1b132}, {0x1b155, 0x1b155},
+	{0x1d2c0, 0x1d2d3}, {0x1df25, 0x1df2a}, {0x1e030, 0x1e06d},
+	{0x1e08f, 0x1e08f}, {0x1e4d0, 0x1e4f9}, {0x1f6dc, 0x1f6dc},
+	{0x1f774, 0x1f776}, {0x1f77b, 0x1f77f}, {0x1f7d9, 0x1f7d9},
+	{0x1fa75, 0x1fa77}, {0x1fa87, 0x1fa88}, {0x1faad, 0x1faaf},
+	{0x1fabb, 0x1fabd}, {0x1fabf, 0x1fabf}, {0x1face, 0x1facf},
+	{0x1fada, 0x1fadb}, {0x1fae8, 0x1fae8}, {0x1faf7, 0x1faf8},
+	{0x2b739, 0x2b739}, {0x31350, 0x323af},
+	// Unicode 15.1.
+	{0x2ffc, 0x2fff}, {0x31ef, 0x31ef}, {0x2ebf0, 0x2ee5d},
+	// Unicode 16.0.
+	{0x0897, 0x0897}, {0x1b4e, 0x1b4f}, {0x1b7f, 0x1b7f},
+	{0x1c89, 0x1c8a}, {0x2427, 0x2429}, {0x31e4, 0x31e5},
+	{0xa7cb, 0xa7cd}, {0xa7da, 0xa7dc}, {0x105c0, 0x105f3},
+	{0x10d40, 0x10d65}, {0x10d69, 0x10d85}, {0x10d8e, 0x10d8f},
+	{0x10ec2, 0x10ec4}, {0x10efc, 0x10efc}, {0x11380, 0x11389},
+	{0x1138b, 0x1138b}, {0x1138e, 0x1138e}, {0x11390, 0x113b5},
+	{0x113b7, 0x113c0}, {0x113c2, 0x113c2}, {0x113c5, 0x113c5},
+	{0x113c7, 0x113ca}, {0x113cc, 0x113d5}, {0x113d7, 0x113d8},
+	{0x113e1, 0x113e2}, {0x116d0, 0x116e3}, {0x11bc0, 0x11be1},
+	{0x11bf0, 0x11bf9}, {0x11f5a, 0x11f5a}, {0x13460, 0x143fa},
+	{0x16100, 0x16139}, {0x16d40, 0x16d79}, {0x18cff, 0x18cff},
+	{0x1cc00, 0x1ccf9}, {0x1cd00, 0x1ceb3}, {0x1e5d0, 0x1e5fa},
+	{0x1e5ff, 0x1e5ff}, {0x1f8b2, 0x1f8bb}, {0x1f8c0, 0x1f8c1},
+	{0x1fa89, 0x1fa89}, {0x1fa8f, 0x1fa8f}, {0x1fabe, 0x1fabe},
+	{0x1fac6, 0x1fac6}, {0x1fadc, 0x1fadc}, {0x1fadf, 0x1fadf},
+	{0x1fae9, 0x1fae9}, {0x1fbcb, 0x1fbef},
+	// Unicode 17.0.
+	{0x088f, 0x088f}, {0x0c5c, 0x0c5c}, {0x0cdc, 0x0cdc},
+	{0x1acf, 0x1add}, {0x1ae0, 0x1aeb}, {0x20c1, 0x20c1},
+	{0x2b96, 0x2b96}, {0xa7ce, 0xa7cf}, {0xa7d2, 0xa7d2},
+	{0xa7d4, 0xa7d4}, {0xa7f1, 0xa7f1}, {0xfbc3, 0xfbd2},
+	{0xfd90, 0xfd91}, {0xfdc8, 0xfdce}, {0x10940, 0x10959},
+	{0x10ec5, 0x10ec7}, {0x10ed0, 0x10ed8}, {0x10efa, 0x10efb},
+	{0x11b60, 0x11b67}, {0x11db0, 0x11ddb}, {0x11de0, 0x11de9},
+	{0x16ea0, 0x16eb8}, {0x16ebb, 0x16ed3}, {0x16ff2, 0x16ff6},
+	{0x187f8, 0x187ff}, {0x18d09, 0x18d1e}, {0x18d80, 0x18df2},
+	{0x1ccfa, 0x1ccfc}, {0x1ceba, 0x1ced0}, {0x1cee0, 0x1cef0},
+	{0x1e6c0, 0x1e6de}, {0x1e6e0, 0x1e6f5}, {0x1e6fe, 0x1e6ff},
+	{0x1f6d8, 0x1f6d8}, {0x1f777, 0x1f77a}, {0x1f8d0, 0x1f8d8},
+	{0x1fa54, 0x1fa57}, {0x1fa8a, 0x1fa8a}, {0x1fa8e, 0x1fa8e},
+	{0x1fac8, 0x1fac8}, {0x1facd, 0x1facd}, {0x1faea, 0x1faea},
+	{0x1faef, 0x1faef}, {0x1fbfa, 0x1fbfa}, {0x2b73a, 0x2b73f},
+	{0x2cea2, 0x2cead}, {0x323b0, 0x33479},
+}
+
+func isPostUnicode14ClaimNameAssignment(value rune) bool {
+	for _, interval := range postUnicode14ClaimNameAssignments {
+		if value >= interval[0] && value <= interval[1] {
+			return true
+		}
+	}
+	return false
+}

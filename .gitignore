@@ -1,0 +1,31 @@
+# Build and packaging outputs
+/dist/
+/lbrynet
+/lbrynet-*
+/lbryd
+/lbry-daemon
+*.exe
+*.test
+/coverage.*
+*.prof
+
+# Local Go workspace files
+/go.work
+/go.work.sum
+/.oracle/
+
+# Python compatibility-oracle caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Daemon runtime state accidentally created in the source tree
+*.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Temporary files
+*.tmp
+*~
+.DS_Store
