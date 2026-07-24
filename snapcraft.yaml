@@ -25,7 +25,7 @@ parts:
   lbryd:
     plugin: go
     source: .
-    build-snaps: [go]
+    build-snaps: [go/1.25/stable]
     override-build: go build -o ${CRAFT_PART_INSTALL}/bin/lbryd
 
 platforms:
