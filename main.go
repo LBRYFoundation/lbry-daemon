@@ -20,7 +20,7 @@ func main() {
 		Blobs: map[string][]byte{},
 	}
 
-	rpcServer := rpc.CreateServer()
+	rpcServer := rpc.CreateServer(node)
 	contentServer := stream.CreateServer(blobManager)
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)

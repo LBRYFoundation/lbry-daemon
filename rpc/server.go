@@ -5,10 +5,12 @@ import "encoding/base64"
 import "encoding/hex"
 import "encoding/json"
 import "fmt"
+import "lbry/daemon/dht"
 import "math"
 import "math/rand"
 import "net"
 import "net/http"
+import "os"
 import "runtime/debug"
 import "slices"
 import "strconv"
@@ -17,13 +19,15 @@ import "strings"
 import "google.golang.org/protobuf/encoding/protowire"
 
 type RPCServer struct {
+	dhtNode    *dht.Node
 	httpServer http.Server
 }
 
-func CreateServer() RPCServer {
+func CreateServer(dhtNode *dht.Node) RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := RPCServer{
+		dhtNode:    dhtNode,
 		httpServer: http.Server{Handler: rpcServeMux},
 	}
 
@@ -89,7 +93,7 @@ func (rpcServer RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Reques
 
 		_, ok := message.(map[string]any)
 		if ok {
-			handleJSONRPCMessage(w, message.(map[string]any))
+			rpcServer.handleJSONRPCMessage(w, req, message.(map[string]any))
 			return
 		}
 
@@ -102,7 +106,7 @@ func (rpcServer RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Reques
 	sendErrorResponse(w, -32700, "HTTP method not allowed.")
 }
 
-var handlers = map[string]func(http.ResponseWriter, any){
+var handlers = map[string]func(RPCServer, http.ResponseWriter, *http.Request, any){
 	"account_add":             handleJSONRPCMessageAccountAdd,
 	"account_balance":         handleJSONRPCMessageAccountBalance,
 	"account_create":          handleJSONRPCMessageAccountCreate,
@@ -196,7 +200,7 @@ var handlers = map[string]func(http.ResponseWriter, any){
 	"wallet_unlock":           handleJSONRPCMessageWalletUnlock,
 }
 
-func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
+func (rpcServer RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http.Request, message map[string]any) {
 	method, existsMethod := message["method"].(string)
 	params, existsParams := message["params"]
 
@@ -210,10 +214,10 @@ func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
 	if exists {
 		fmt.Printf("Receiving '%s' method\n", method)
 		if existsParams {
-			handler(w, params)
+			handler(rpcServer, w, req, params)
 			return
 		}
-		handler(w, nil)
+		handler(rpcServer, w, req, nil)
 		return
 	}
 
@@ -221,108 +225,108 @@ func handleJSONRPCMessage(w http.ResponseWriter, message map[string]any) {
 	sendErrorResponse(w, -32601, "Unknown JSON-RPC method.")
 }
 
-func handleJSONRPCMessageAccountAdd(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountBalance(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountDeposit(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountDeposit(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountFund(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountFund(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountMaxAddressGap(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountMaxAddressGap(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountRemove(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountSend(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAccountSet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAccountSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAddressIsMine(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAddressIsMine(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAddressList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAddressList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageAddressUnused(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageAddressUnused(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageBlobAnnounce(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
 }
 
-func handleJSONRPCMessageBlobClean(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageBlobDelete(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageBlobGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageBlobList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageBlobReflect(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageBlobReflectAll(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageChannelAbandon(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageChannelAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageChannelCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageChannelCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageChannelList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageChannelList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageChannelSign(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageChannelSign(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageChannelUpdate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageChannelUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageClaimList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageClaimList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
@@ -399,7 +403,7 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 	return m, nil
 }
 
-func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	searchResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
 		"jsonrpc": "2.0",
@@ -466,52 +470,52 @@ func handleJSONRPCMessageClaimSearch(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleJSONRPCMessageCollectionAbandon(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageCollectionCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageCollectionList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageCollectionResolve(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
 }
 
-func handleJSONRPCMessageCollectionUpdate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageFfmpegFind(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageFileDelete(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageFileList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageFileReflect(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageFileSave(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileSave(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageFileSetStatus(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageFileSetStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	var paramsMap map[string]any = params.(map[string]any)
 
@@ -584,35 +588,60 @@ func handleJSONRPCMessageGet(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleJSONRPCMessagePeerList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessagePeerPing(w http.ResponseWriter, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+var PROTECT_MODE_ADMIN = true
+
+func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
+		payload, err := rpcServer.dhtNode.Ping(addr)
+		if err == nil {
+			sendResultResponse(w, string(payload))
+			return
+		}
+		sendResultResponse(w, map[string]any{
+			"error": err.Error(),
+		})
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
-func handleJSONRPCMessagePreferenceGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePreferenceGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessagePreferenceSet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePreferenceSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessagePublish(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePublish(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessagePurchaseCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePurchaseCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessagePurchaseList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessagePurchaseList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	var paramsMap map[string]any = params.(map[string]any)
 
@@ -688,129 +717,129 @@ func handleJSONRPCMessageResolve(w http.ResponseWriter, params any) {
 	sendResultResponse(w, resolutions)
 }
 
-func handleJSONRPCMessageRoutingTableGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
 }
 
-func handleJSONRPCMessageSettingsClear(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageSettingsGet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSettingsGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageSettingsSet(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageStatus(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendResultResponse(w, map[string]any{
 		"is_running": true,
 	})
 }
 
-func handleJSONRPCMessageStop(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageStreamAbandon(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageStreamCostEstimate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
 }
 
-func handleJSONRPCMessageStreamCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageStreamList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageStreamRepost(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamRepost(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageStreamUpdate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageStreamUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSupportAbandon(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSupportAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSupportCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSupportCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSupportList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSupportList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSupportSum(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSupportSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSyncApply(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSyncApply(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageSyncHash(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageSyncHash(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageTracemallocDisable(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTracemallocDisable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageTracemallocEnable(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTracemallocEnable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageTracemallocTop(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTracemallocTop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 401, "Not exposed for now.")
 }
 
-func handleJSONRPCMessageTransactionList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageTransactionShow(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
 }
 
-func handleJSONRPCMessageTxoList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageTxoPlot(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTxoPlot(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageTxoSpend(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTxoSpend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageTxoSum(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageTxoSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageUtxoList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageUtxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageUtxoRelease(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageUtxoRelease(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
 }
 
-func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	_, _ = debug.ReadBuildInfo()
 
@@ -826,59 +855,59 @@ func handleJSONRPCMessageVersion(w http.ResponseWriter, params any) {
 	})
 }
 
-func handleJSONRPCMessageWalletAdd(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletBalance(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletCreate(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletDecrypt(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletDecrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletEncrypt(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletEncrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletExport(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletExport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletImport(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletList(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletLock(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletReconnect(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletReconnect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletRemove(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletSend(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
-func handleJSONRPCMessageWalletStatus(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	//sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 	sendResultResponse(w, map[string]any{})
 }
 
-func handleJSONRPCMessageWalletUnlock(w http.ResponseWriter, params any) {
+func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }

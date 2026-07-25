@@ -470,9 +470,9 @@ func (n *Node) sendRPC(to *net.UDPAddr, method string, args []any) (map[string]a
 }
 
 // Ping sends a ping to a peer.
-func (n *Node) Ping(addr *net.UDPAddr) error {
-	_, err := n.sendRPC(addr, METHOD_PING, nil)
-	return err
+func (n *Node) Ping(addr *net.UDPAddr) ([]byte, error) {
+	msg, err := n.sendRPC(addr, METHOD_PING, nil)
+	return getBencBytes(msg, "3"), err
 }
 
 // FindNode performs an iterative find_node lookup.
@@ -636,7 +636,8 @@ func (n *Node) Bootstrap() error {
 		if err != nil {
 			continue
 		}
-		if err := n.Ping(addr); err == nil {
+		_, pingErr := n.Ping(addr)
+		if pingErr == nil {
 			pinged++
 			log.Printf("DHT: connected to seed %s", seed)
 			if pinged >= 3 {
