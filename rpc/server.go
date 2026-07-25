@@ -11,6 +11,7 @@ import "math/rand"
 import "net"
 import "net/http"
 import "os"
+import "os/exec"
 import "runtime/debug"
 import "slices"
 import "strconv"
@@ -492,7 +493,47 @@ func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWr
 }
 
 func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		analyzeAudioVolume := false // TODO: Get from configuration
+		available := false
+		var which string // TODO: Get from configuration
+
+		if !available {
+			path, err := exec.LookPath("ffmpeg")
+			if err == nil {
+				available = true
+				which = path
+			}
+		}
+
+		if available {
+			sendResultResponse(w, map[string]any{
+				"available":            available,
+				"which":                which,
+				"analyze_audio_volume": analyzeAudioVolume,
+			})
+			return
+		}
+
+		sendResultResponse(w, map[string]any{
+			"available":            available,
+			"which":                nil,
+			"analyze_audio_volume": analyzeAudioVolume,
+		})
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -588,11 +629,38 @@ func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *ht
 	})
 }
 
-func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
-}
-
 var PROTECT_MODE_ADMIN = true
+
+func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		if rpcServer.dhtNode == nil {
+			sendErrorResponse(w, 401, "DHT component is not enabled.")
+			return
+		}
+		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
+		payload, err := rpcServer.dhtNode.Ping(addr)
+		if err == nil {
+			sendResultResponse(w, string(payload))
+			return
+		}
+		sendResultResponse(w, map[string]any{
+			"error": err.Error(),
+		})
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
+}
 
 func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	mayUse := !PROTECT_MODE_ADMIN
@@ -607,6 +675,10 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 	}
 
 	if mayUse {
+		if rpcServer.dhtNode == nil {
+			sendErrorResponse(w, 401, "DHT component is not enabled.")
+			return
+		}
 		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
 		payload, err := rpcServer.dhtNode.Ping(addr)
 		if err == nil {
@@ -618,6 +690,7 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 		})
 		return
 	}
+
 	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
@@ -742,7 +815,30 @@ func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req 
 }
 
 func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		sendResultResponse(w, "Shutting down")
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		// TODO: Improve graceful shutdown
+
+		defer os.Exit(0)
+		return
+	}
+
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -795,15 +891,15 @@ func handleJSONRPCMessageSyncHash(rpcServer RPCServer, w http.ResponseWriter, re
 }
 
 func handleJSONRPCMessageTracemallocDisable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
 func handleJSONRPCMessageTracemallocEnable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
 func handleJSONRPCMessageTracemallocTop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
 func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
