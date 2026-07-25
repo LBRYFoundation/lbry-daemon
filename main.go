@@ -4,6 +4,7 @@ import "fmt"
 import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "lbry/daemon/peer"
+import "lbry/daemon/settings"
 import "lbry/daemon/stream"
 import "lbry/daemon/reflector"
 import "lbry/daemon/rpc"
@@ -14,13 +15,15 @@ import "sync"
 var wg sync.WaitGroup
 
 func main() {
+	config := settings.InitializeConfiguration()
+
 	node, _ := dht.NewNode(4444)
 	//blob.NewManager(node)
 	blobManager := blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
 
-	rpcServer := rpc.CreateServer(node)
+	rpcServer := rpc.CreateServer(config, node)
 	contentServer := stream.CreateServer(blobManager)
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)

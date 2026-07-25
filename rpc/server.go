@@ -6,6 +6,7 @@ import "encoding/hex"
 import "encoding/json"
 import "fmt"
 import "lbry/daemon/dht"
+import "lbry/daemon/settings"
 import "math"
 import "math/rand"
 import "net"
@@ -20,16 +21,18 @@ import "strings"
 import "google.golang.org/protobuf/encoding/protowire"
 
 type RPCServer struct {
-	dhtNode    *dht.Node
-	httpServer http.Server
+	configuration settings.Configuration
+	dhtNode       *dht.Node
+	httpServer    http.Server
 }
 
-func CreateServer(dhtNode *dht.Node) *RPCServer {
+func CreateServer(configuration settings.Configuration, dhtNode *dht.Node) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{
-		dhtNode:    dhtNode,
-		httpServer: http.Server{Handler: rpcServeMux},
+		configuration: configuration,
+		dhtNode:       dhtNode,
+		httpServer:    http.Server{Handler: rpcServeMux},
 	}
 
 	rpcServeMux.HandleFunc("/", server.handleJSONRPC)
@@ -796,15 +799,110 @@ func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWri
 }
 
 func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		key, hasKey := paramsMap["key"]
+		if !hasKey {
+			sendErrorResponse(w, 400, "Missing parameter 'key'.")
+			return
+		}
+		keyString, keyIsString := key.(string)
+		if !keyIsString {
+			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+		}
+		newValue, err := rpcServer.configuration.Clear(keyString)
+		if err == nil {
+			sendResultResponse(w, map[string]any{
+				keyString: newValue,
+			})
+			return
+		}
+		sendErrorResponse(w, 500, err.Error())
+		return
+	}
+
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageSettingsGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		sendResultResponse(w, rpcServer.configuration.All())
+		return
+	}
+
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		key, hasKey := paramsMap["key"]
+		if !hasKey {
+			sendErrorResponse(w, 400, "Missing parameter 'key'.")
+			return
+		}
+		keyString, keyIsString := key.(string)
+		if !keyIsString {
+			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+		}
+		value, hasValue := paramsMap["value"]
+		if !hasValue {
+			sendErrorResponse(w, 400, "Missing parameter 'value'.")
+			return
+		}
+		newValue, err := rpcServer.configuration.Set(keyString, value)
+		if err == nil {
+			sendResultResponse(w, map[string]any{
+				keyString: newValue,
+			})
+			return
+		}
+		sendErrorResponse(w, 500, err.Error())
+		return
+	}
+
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
