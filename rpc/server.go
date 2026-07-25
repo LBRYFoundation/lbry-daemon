@@ -24,10 +24,10 @@ type RPCServer struct {
 	httpServer http.Server
 }
 
-func CreateServer(dhtNode *dht.Node) RPCServer {
+func CreateServer(dhtNode *dht.Node) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
-	server := RPCServer{
+	server := &RPCServer{
 		dhtNode:    dhtNode,
 		httpServer: http.Server{Handler: rpcServeMux},
 	}

@@ -11,8 +11,8 @@ type ReflectorServer struct {
 	blobManager blob.BlobManager
 }
 
-func CreateServer(blobManager blob.BlobManager) ReflectorServer {
-	return ReflectorServer{
+func CreateServer(blobManager blob.BlobManager) *ReflectorServer {
+	return &ReflectorServer{
 		blobManager: blobManager,
 	}
 }

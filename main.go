@@ -25,55 +25,78 @@ func main() {
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)
 
-	wg.Go(func() {
-		fmt.Println("Starting DHT server on port 4444.")
-		// node.TCPPort = 5567
-		node.Start()
-	})
+	runningServers := 0
 
-	wg.Go(func() {
-		fmt.Println("Starting RPC server on port 5279.")
-		listener, err := getTCPListener("", 5279)
-		if err != nil {
-			fmt.Println("Error when getting TCP listener.")
-		}
-		defer listener.Close()
-		rpcServer.StartServer(listener)
-	})
+	if node != nil {
+		wg.Go(func() {
+			fmt.Println("Starting DHT server on port 4444.")
+			// node.TCPPort = 5567
+			node.Start()
+		})
+		runningServers++
+	}
 
-	wg.Go(func() {
-		fmt.Println("Starting content server on port 5280.")
-		listener, err := getTCPListener("", 5280)
-		if err != nil {
-			fmt.Println("Error when getting TCP listener.")
-		}
-		defer listener.Close()
-		contentServer.StartServer(listener)
-	})
+	if rpcServer != nil {
+		wg.Go(func() {
+			fmt.Println("Starting RPC server on port 5279.")
+			listener, err := getTCPListener("", 5279)
+			if err != nil {
+				fmt.Println("Error when getting TCP listener.")
+			}
+			defer listener.Close()
+			rpcServer.StartServer(listener)
+		})
+		runningServers++
+	}
 
-	wg.Go(func() {
-		fmt.Println("Starting reflector server on port 5566.")
-		listener, err := getTCPListener("", 5566)
-		if err != nil {
-			fmt.Println("Error when getting TCP listener.")
-		}
-		defer listener.Close()
-		reflectorServer.StartServer(listener)
-	})
+	if contentServer != nil {
+		wg.Go(func() {
+			fmt.Println("Starting content server on port 5280.")
+			listener, err := getTCPListener("", 5280)
+			if err != nil {
+				fmt.Println("Error when getting TCP listener.")
+			}
+			defer listener.Close()
+			contentServer.StartServer(listener)
+		})
+		runningServers++
+	}
 
-	wg.Go(func() {
-		fmt.Println("Starting peer server on port 5567.")
-		listener, err := getTCPListener("", 5567)
-		if err != nil {
-			fmt.Println("Error when getting TCP listener.")
-		}
-		defer listener.Close()
-		peerServer.StartServer(listener)
-	})
+	if reflectorServer != nil {
+		wg.Go(func() {
+			fmt.Println("Starting reflector server on port 5566.")
+			listener, err := getTCPListener("", 5566)
+			if err != nil {
+				fmt.Println("Error when getting TCP listener.")
+			}
+			defer listener.Close()
+			reflectorServer.StartServer(listener)
+		})
+		runningServers++
+	}
+
+	if peerServer != nil {
+		wg.Go(func() {
+			fmt.Println("Starting peer server on port 5567.")
+			listener, err := getTCPListener("", 5567)
+			if err != nil {
+				fmt.Println("Error when getting TCP listener.")
+			}
+			defer listener.Close()
+			peerServer.StartServer(listener)
+		})
+		runningServers++
+	}
+
+	if runningServers == 0 {
+		fmt.Println("No servers running. Exiting.")
+	}
 
 	wg.Wait()
 
-	fmt.Println("All servers have stopped.")
+	if runningServers != 0 {
+		fmt.Println("All servers have stopped.")
+	}
 }
 
 func getTCPListener(hostname string, port int) (net.Listener, error) {

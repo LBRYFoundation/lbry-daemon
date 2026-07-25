@@ -11,8 +11,8 @@ type PeerServer struct {
 	blobManager blob.BlobManager
 }
 
-func CreateServer(blobManager blob.BlobManager) PeerServer {
-	return PeerServer{
+func CreateServer(blobManager blob.BlobManager) *PeerServer {
+	return &PeerServer{
 		blobManager: blobManager,
 	}
 }

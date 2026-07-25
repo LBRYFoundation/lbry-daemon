@@ -14,10 +14,10 @@ type StreamServer struct {
 	httpServer  http.Server
 }
 
-func CreateServer(blobManager blob.BlobManager) StreamServer {
+func CreateServer(blobManager blob.BlobManager) *StreamServer {
 	contentServeMux := http.NewServeMux()
 
-	server := StreamServer{
+	server := &StreamServer{
 		blobManager: blobManager,
 		httpServer:  http.Server{Handler: contentServeMux},
 	}
