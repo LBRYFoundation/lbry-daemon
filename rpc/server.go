@@ -21,6 +21,9 @@ import "strings"
 
 import "google.golang.org/protobuf/encoding/protowire"
 
+// const TMP_HUB_HOSTNAME = "s1.lbry.network"
+const TMP_HUB_HOSTNAME = "hub.lbry.grin.io"
+
 type RPCServer struct {
 	configuration settings.Configuration
 	dhtNode       *dht.Node
@@ -410,7 +413,7 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 
 func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	searchResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+	searchResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.search",
@@ -437,7 +440,7 @@ func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter,
 		}
 	}
 
-	transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+	transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.transaction.get_batch",
@@ -566,7 +569,7 @@ func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *ht
 
 	uri, _ := paramsMap["uri"].(string)
 
-	resolveResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.resolve",
@@ -603,7 +606,7 @@ func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *ht
 			}
 		}
 
-		transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 			"jsonrpc": "2.0",
 			"id":      rand.Int() + 1,
 			"method":  "blockchain.transaction.get_batch",
@@ -730,7 +733,7 @@ func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req
 		urls = paramsMap["urls"].([]any)
 	}
 
-	resolveResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.resolve",
@@ -770,7 +773,7 @@ func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req
 			}
 		}
 
-		transactionResp, _ := SendJSON("s1.lbry.network", 50001, map[string]any{
+		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 			"jsonrpc": "2.0",
 			"id":      rand.Int() + 1,
 			"method":  "blockchain.transaction.get_batch",
@@ -874,6 +877,7 @@ func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWrite
 		keyString, keyIsString := key.(string)
 		if !keyIsString {
 			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+			return
 		}
 		newValue, err := rpcServer.configuration.Clear(keyString)
 		if err == nil {
@@ -935,6 +939,7 @@ func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter,
 		keyString, keyIsString := key.(string)
 		if !keyIsString {
 			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+			return
 		}
 		value, hasValue := paramsMap["value"]
 		if !hasValue {
@@ -1056,7 +1061,37 @@ func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWri
 
 func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	paramsMap, paramsMapOk := params.(map[string]any)
+	if !paramsMapOk {
+		sendErrorResponse(w, 400, "Parameters not present.")
+		return
+	}
+	transactionID, hasTransactionID := paramsMap["txid"]
+	if !hasTransactionID {
+		sendErrorResponse(w, 400, "Missing parameter 'txid'.")
+		return
+	}
+	transactionIDString, transactionIDIsString := transactionID.(string)
+	if !transactionIDIsString {
+		sendErrorResponse(w, 400, "Parameter 'txid' not of type string.")
+		return
+	}
+
+	transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      rand.Int() + 1,
+		"method":  "blockchain.transaction.info",
+		"params":  []string{transactionIDString},
+	})
+
+	errorObj, hasError := transactionResp["error"].(map[string]any)
+
+	if !hasError {
+		sendResultResponse(w, nil) // TODO: Decode transaction and return
+		return
+	}
+
+	sendErrorResponse(w, int(errorObj["code"].(float64)), errorObj["message"].(string))
 }
 
 func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {

@@ -45,6 +45,7 @@ func main() {
 			listener, err := getTCPListener("", 5279)
 			if err != nil {
 				fmt.Println("Error when getting TCP listener.")
+				return
 			}
 			defer listener.Close()
 			rpcServer.StartServer(listener)
@@ -58,6 +59,7 @@ func main() {
 			listener, err := getTCPListener("", 5280)
 			if err != nil {
 				fmt.Println("Error when getting TCP listener.")
+				return
 			}
 			defer listener.Close()
 			contentServer.StartServer(listener)
@@ -71,6 +73,7 @@ func main() {
 			listener, err := getTCPListener("", 5566)
 			if err != nil {
 				fmt.Println("Error when getting TCP listener.")
+				return
 			}
 			defer listener.Close()
 			reflectorServer.StartServer(listener)
@@ -84,6 +87,7 @@ func main() {
 			listener, err := getTCPListener("", 5567)
 			if err != nil {
 				fmt.Println("Error when getting TCP listener.")
+				return
 			}
 			defer listener.Close()
 			peerServer.StartServer(listener)
