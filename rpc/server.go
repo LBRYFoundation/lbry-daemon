@@ -13,6 +13,7 @@ import "net"
 import "net/http"
 import "os"
 import "os/exec"
+import "regexp"
 import "runtime/debug"
 import "slices"
 import "strconv"
@@ -1147,8 +1148,12 @@ func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, 
 }
 
 func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	//sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
-	sendResultResponse(w, map[string]any{})
+	if regexp.MustCompile(`(?:^|\s)LBRY/(\d+)\.(\d+)\.(\d+)(?:\s|$)`).MatchString(req.UserAgent()) {
+		// Backward compatibility
+		sendResultResponse(w, map[string]any{})
+		return
+	}
+	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
