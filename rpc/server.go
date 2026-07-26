@@ -1000,7 +1000,87 @@ func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWrite
 
 func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	var paramsMap map[string]any = params.(map[string]any)
+
+	uri, _ := paramsMap["uri"].(string)
+
+	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      rand.Int() + 1,
+		"method":  "blockchain.claimtrie.resolve",
+		"params":  []string{uri},
+	})
+
+	var resolutions map[string]any = map[string]any{}
+
+	_, resultIsString := resolveResp["result"].(string)
+	if resultIsString {
+		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
+
+		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+
+		var resolutionData []any
+
+		_, okResolution := decodedProtobuf[1].([]any)
+		if okResolution {
+			resolutionData = decodedProtobuf[1].([]any)
+		} else {
+			resolutionData = []any{decodedProtobuf[1]}
+		}
+
+		txIDs := []string{}
+
+		for _, claim := range resolutionData {
+			claimMap := claim.(map[int]any)
+			txidValue, txidOk := claimMap[1]
+			if txidOk {
+				txidBytes := txidValue.([]byte)
+				slices.Reverse(txidBytes)
+				txID := hex.EncodeToString(txidBytes)
+				txIDs = append(txIDs, txID)
+			}
+		}
+
+		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.get_batch",
+			"params":  txIDs,
+		})
+
+		transactionData := transactionResp["result"].(map[string]any)
+
+		for _, claim := range resolutionData {
+			claimMap, ok := claim.(map[int]any)
+			if ok {
+				item := convertProtobufToClaim(claimMap, transactionData)
+
+				json.NewEncoder(os.Stdout).Encode(item)
+
+				resolutionKey := uri
+				resolutions[resolutionKey] = item
+			}
+
+		}
+
+		finalClaim := resolutions[uri]
+		fee, hasFee := finalClaim.(map[string]any)["value"].(map[string]any)["fee"]
+
+		if hasFee {
+			if fee.(map[string]any)["currency"] == "LBC" {
+				sendResultResponse(w, fee.(map[string]any)["amount"].(uint64)/100_000_000)
+				return
+			}
+
+			sendErrorResponse(w, 500, "Cannot convert rate at this moment") // TODO: Convert BTC and USD
+			return
+		}
+
+		sendResultResponse(w, 0)
+		return
+	}
+
+	sendErrorResponse(w, 501, "Failed to get result")
 }
 
 func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {

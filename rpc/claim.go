@@ -180,6 +180,42 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 			claimValue["license_url"] = licenseURL
 		}
 
+		feeValue, feeOk := stream[6]
+		if feeOk {
+			fee := map[string]any{}
+
+			currencyValue, currencyOk := (feeValue.(map[int]any))[1]
+			if currencyOk {
+				currency := currencyValue.(uint64)
+				if currency == 0 {
+					fee["currency"] = "UNKNOWN_CURRENCY"
+				}
+				if currency == 1 {
+					fee["currency"] = "LBC"
+				}
+				if currency == 2 {
+					fee["currency"] = "BTC"
+				}
+				if currency == 3 {
+					fee["currency"] = "USD"
+				}
+			}
+
+			addressValue, addressOk := (feeValue.(map[int]any))[2]
+			if addressOk {
+				_ = addressValue.([]byte)
+				//fee["address"] = address
+			}
+
+			amountValue, amountOk := (feeValue.(map[int]any))[3]
+			if amountOk {
+				amount := amountValue.(uint64)
+				fee["amount"] = amount
+			}
+
+			claimValue["fee"] = fee
+		}
+
 		// Temporary
 		claimValue["stream_type"] = "document"
 
