@@ -99,12 +99,12 @@ func DistanceLess(a, b [HashSize]byte) bool {
 // --- Routing Table ---
 
 type KBucket struct {
-	peers []Peer
+	Peers []Peer
 }
 
 type RoutingTable struct {
 	selfID  [HashSize]byte
-	buckets [HashSize * 8]KBucket // 384 buckets
+	Buckets [HashSize * 8]KBucket // 384 buckets
 	mu      sync.RWMutex
 }
 
@@ -129,24 +129,24 @@ func (rt *RoutingTable) AddPeer(p Peer) {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
 	idx := rt.bucketIndex(p.ID)
-	bucket := &rt.buckets[idx]
+	bucket := &rt.Buckets[idx]
 
 	// Check if already in bucket
-	for i, existing := range bucket.peers {
+	for i, existing := range bucket.Peers {
 		if existing.ID == p.ID {
-			bucket.peers[i].LastSeen = time.Now()
-			bucket.peers[i].IP = p.IP
-			bucket.peers[i].UDPPort = p.UDPPort
+			bucket.Peers[i].LastSeen = time.Now()
+			bucket.Peers[i].IP = p.IP
+			bucket.Peers[i].UDPPort = p.UDPPort
 			if p.TCPPort > 0 {
-				bucket.peers[i].TCPPort = p.TCPPort
+				bucket.Peers[i].TCPPort = p.TCPPort
 			}
 			return
 		}
 	}
 
-	if len(bucket.peers) < K {
+	if len(bucket.Peers) < K {
 		p.LastSeen = time.Now()
-		bucket.peers = append(bucket.peers, p)
+		bucket.Peers = append(bucket.Peers, p)
 	}
 	// If full, drop (simplified — full Kademlia pings least-recent)
 }
@@ -161,8 +161,8 @@ func (rt *RoutingTable) ClosestPeers(key [HashSize]byte, n int) []Peer {
 		dist [HashSize]byte
 	}
 	var all []peerDist
-	for _, bucket := range rt.buckets {
-		for _, p := range bucket.peers {
+	for _, bucket := range rt.Buckets {
+		for _, p := range bucket.Peers {
 			all = append(all, peerDist{p, Distance(key, p.ID)})
 		}
 	}
@@ -186,7 +186,7 @@ type Node struct {
 	UDPPort     int
 	TCPPort     int // blob exchange port
 	conn        *net.UDPConn
-	routing     *RoutingTable
+	Routing     *RoutingTable
 	pending     map[string]chan map[string]any // rpcID -> response channel
 	mu          sync.RWMutex
 	running     bool
@@ -203,7 +203,7 @@ func NewNode(udpPort int) (*Node, error) {
 	node := &Node{
 		ID:          id,
 		UDPPort:     udpPort,
-		routing:     NewRoutingTable(id),
+		Routing:     NewRoutingTable(id),
 		pending:     make(map[string]chan map[string]any),
 		tokenSecret: secret,
 	}
@@ -290,7 +290,7 @@ func (n *Node) handleMessage(data []byte, from *net.UDPAddr) {
 	if len(dhtMessage.NodeID) == HashSize {
 		var id [HashSize]byte
 		copy(id[:], dhtMessage.NodeID)
-		n.routing.AddPeer(Peer{ID: id, IP: from.IP, UDPPort: from.Port})
+		n.Routing.AddPeer(Peer{ID: id, IP: from.IP, UDPPort: from.Port})
 	}
 
 	switch dhtMessage.Type {
@@ -365,7 +365,7 @@ func (n *Node) handleFindNode(from *net.UDPAddr, args []any) (any, []any, error)
 	}
 	var keyArr [HashSize]byte
 	copy(keyArr[:], key)
-	peers := n.routing.ClosestPeers(keyArr, K)
+	peers := n.Routing.ClosestPeers(keyArr, K)
 	contacts := peersToContactList(peers)
 
 	return contacts, nil, nil
@@ -382,7 +382,7 @@ func (n *Node) handleFindValue(from *net.UDPAddr, args []any) (any, []any, error
 	}
 	var keyArr [HashSize]byte
 	copy(keyArr[:], key)
-	peers := n.routing.ClosestPeers(keyArr, K)
+	peers := n.Routing.ClosestPeers(keyArr, K)
 	contacts := peersToContactList(peers)
 
 	// Generate token
@@ -539,7 +539,7 @@ func (n *Node) iterativeLookup(key [HashSize]byte, findValue bool) []Peer {
 }
 
 func (n *Node) iterativeLookupWithCallback(key [HashSize]byte, findValue bool, onResponse func(map[string]any)) []Peer {
-	shortlist := n.routing.ClosestPeers(key, K)
+	shortlist := n.Routing.ClosestPeers(key, K)
 	if len(shortlist) == 0 {
 		return nil
 	}

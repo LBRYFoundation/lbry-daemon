@@ -648,7 +648,7 @@ func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, re
 
 	if mayUse {
 		if rpcServer.dhtNode == nil {
-			sendErrorResponse(w, 401, "DHT component is not enabled.")
+			sendErrorResponse(w, 500, "DHT component is not enabled.")
 			return
 		}
 		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
@@ -679,7 +679,7 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 
 	if mayUse {
 		if rpcServer.dhtNode == nil {
-			sendErrorResponse(w, 401, "DHT component is not enabled.")
+			sendErrorResponse(w, 500, "DHT component is not enabled.")
 			return
 		}
 		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
@@ -795,7 +795,56 @@ func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req
 
 func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		if rpcServer.dhtNode == nil {
+			sendErrorResponse(w, 500, "DHT component is not enabled.")
+			return
+		}
+
+		buckets := map[string]any{}
+		nodeID := hex.EncodeToString(rpcServer.dhtNode.ID[:])
+		prefixNeighborsCount := 0
+
+		routingTable := rpcServer.dhtNode.Routing
+
+		for i, bucket := range routingTable.Buckets {
+			bucketItem := []any{}
+			for _, peer := range bucket.Peers {
+				bucketItem = append(bucketItem, map[string]any{
+					"address":  peer.IP.String(),
+					"udp_port": peer.UDPPort,
+					"tcp_port": peer.TCPPort,
+					"node_id":  hex.EncodeToString(peer.ID[:]),
+				})
+
+				if rpcServer.dhtNode.ID[0] == peer.ID[0] {
+					prefixNeighborsCount++
+				}
+			}
+			if len(bucketItem) > 0 {
+				buckets[strconv.Itoa(i)] = bucketItem
+			}
+		}
+
+		sendResultResponse(w, map[string]any{
+			"buckets":                buckets,
+			"node_id":                nodeID,
+			"prefix_neighbors_count": prefixNeighborsCount,
+		})
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
