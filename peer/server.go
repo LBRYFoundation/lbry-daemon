@@ -8,10 +8,10 @@ import "net"
 import "time"
 
 type PeerServer struct {
-	blobManager blob.BlobManager
+	blobManager *blob.BlobManager
 }
 
-func CreateServer(blobManager blob.BlobManager) *PeerServer {
+func CreateServer(blobManager *blob.BlobManager) *PeerServer {
 	return &PeerServer{
 		blobManager: blobManager,
 	}

@@ -10,11 +10,11 @@ import "runtime/debug"
 import "strings"
 
 type StreamServer struct {
-	blobManager blob.BlobManager
+	blobManager *blob.BlobManager
 	httpServer  http.Server
 }
 
-func CreateServer(blobManager blob.BlobManager) *StreamServer {
+func CreateServer(blobManager *blob.BlobManager) *StreamServer {
 	contentServeMux := http.NewServeMux()
 
 	server := &StreamServer{

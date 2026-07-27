@@ -8,6 +8,7 @@ import "lbry/daemon/settings"
 import "lbry/daemon/stream"
 import "lbry/daemon/reflector"
 import "lbry/daemon/rpc"
+import "lbry/daemon/wallet"
 import "net"
 import "strconv"
 import "sync"
@@ -19,11 +20,13 @@ func main() {
 
 	node, _ := dht.NewNode(4444)
 	//blob.NewManager(node)
-	blobManager := blob.BlobManager{
+
+	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
+	walletManager := &wallet.WalletManager{}
 
-	rpcServer := rpc.CreateServer(config, node)
+	rpcServer := rpc.CreateServer(config, blobManager, node, walletManager)
 	contentServer := stream.CreateServer(blobManager)
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)

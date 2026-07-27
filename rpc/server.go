@@ -5,8 +5,10 @@ import "encoding/base64"
 import "encoding/hex"
 import "encoding/json"
 import "fmt"
+import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "lbry/daemon/settings"
+import "lbry/daemon/wallet"
 import "math"
 import "math/rand"
 import "net"
@@ -25,18 +27,22 @@ import "google.golang.org/protobuf/encoding/protowire"
 const TMP_HUB_HOSTNAME = "hub.lbry.grin.io"
 
 type RPCServer struct {
+	blobManager   *blob.BlobManager
 	configuration settings.Configuration
 	dhtNode       *dht.Node
 	httpServer    http.Server
+	walletManager *wallet.WalletManager
 }
 
-func CreateServer(configuration settings.Configuration, dhtNode *dht.Node) *RPCServer {
+func CreateServer(configuration settings.Configuration, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{
+		blobManager:   blobManager,
 		configuration: configuration,
 		dhtNode:       dhtNode,
 		httpServer:    http.Server{Handler: rpcServeMux},
+		walletManager: walletManager,
 	}
 
 	rpcServeMux.HandleFunc("/", server.handleJSONRPC)
@@ -291,7 +297,29 @@ func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter
 }
 
 func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		if rpcServer.blobManager == nil {
+			sendErrorResponse(w, 500, "Blob Manager component is not running.")
+			return
+		}
+
+		resp := rpcServer.blobManager.Clean()
+
+		sendResultResponse(w, resp)
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -307,11 +335,70 @@ func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, re
 }
 
 func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		if rpcServer.blobManager == nil {
+			sendErrorResponse(w, 500, "Blob Manager component is not running.")
+			return
+		}
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		blobHashes, hasBlobHashes := paramsMap["blob_hashes"]
+		if !hasBlobHashes {
+			sendErrorResponse(w, 400, "Missing parameter 'blob_hashes'.")
+			return
+		}
+		blobHashesStringArray, blobHashesIsStringArray := blobHashes.([]string)
+		if !blobHashesIsStringArray {
+			sendErrorResponse(w, 400, "Parameter 'key' not of type string array.")
+			return
+		}
+
+		resp := rpcServer.blobManager.Reflect(blobHashesStringArray)
+
+		sendResultResponse(w, resp)
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	mayUse := !PROTECT_MODE_ADMIN
+
+	if PROTECT_MODE_ADMIN {
+		username, password, ok := req.BasicAuth()
+		if ok {
+			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
+				mayUse = true
+			}
+		}
+	}
+
+	if mayUse {
+		if rpcServer.blobManager == nil {
+			sendErrorResponse(w, 500, "Blob Manager component is not running.")
+			return
+		}
+
+		resp := rpcServer.blobManager.ReflectAll()
+
+		sendResultResponse(w, resp)
+		return
+	}
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
 
 func handleJSONRPCMessageChannelAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -652,7 +739,7 @@ func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, re
 
 	if mayUse {
 		if rpcServer.dhtNode == nil {
-			sendErrorResponse(w, 500, "DHT component is not enabled.")
+			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
 		}
 		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
@@ -683,7 +770,7 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 
 	if mayUse {
 		if rpcServer.dhtNode == nil {
-			sendErrorResponse(w, 500, "DHT component is not enabled.")
+			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
 		}
 		addr, _ := net.ResolveUDPAddr("udp", "s1.lbry.network:4444") // TODO Remove hardcoded server
@@ -812,7 +899,7 @@ func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWri
 
 	if mayUse {
 		if rpcServer.dhtNode == nil {
-			sendErrorResponse(w, 500, "DHT component is not enabled.")
+			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
 		}
 

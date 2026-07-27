@@ -17,6 +17,21 @@ type BlobManager struct {
 // cache:   make(map[string][]byte),
 // sdCache: make(map[string]*StreamDescriptor),
 
+func (blobManager *BlobManager) Clean() bool {
+	// TODO: Implement
+	return false
+}
+
+func (blobManager *BlobManager) Reflect(blobHashes []string) []string {
+	// TODO: Implement
+	return []string{}
+}
+
+func (blobManager *BlobManager) ReflectAll() bool {
+	// TODO: Implement
+	return false
+}
+
 func (blobManager *BlobManager) Get(blobHash string) ([]byte, bool) {
 	blobData, ok := blobManager.Blobs[blobHash]
 	if !ok {

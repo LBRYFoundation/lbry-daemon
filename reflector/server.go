@@ -8,10 +8,10 @@ import "net"
 import "time"
 
 type ReflectorServer struct {
-	blobManager blob.BlobManager
+	blobManager *blob.BlobManager
 }
 
-func CreateServer(blobManager blob.BlobManager) *ReflectorServer {
+func CreateServer(blobManager *blob.BlobManager) *ReflectorServer {
 	return &ReflectorServer{
 		blobManager: blobManager,
 	}
