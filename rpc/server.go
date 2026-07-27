@@ -186,9 +186,6 @@ var handlers = map[string]func(RPCServer, http.ResponseWriter, *http.Request, an
 	"support_sum":             handleJSONRPCMessageSupportSum,
 	"sync_apply":              handleJSONRPCMessageSyncApply,
 	"sync_hash":               handleJSONRPCMessageSyncHash,
-	"tracemalloc_disable":     handleJSONRPCMessageTracemallocDisable,
-	"tracemalloc_enable":      handleJSONRPCMessageTracemallocEnable,
-	"tracemalloc_top":         handleJSONRPCMessageTracemallocTop,
 	"transaction_list":        handleJSONRPCMessageTransactionList,
 	"transaction_show":        handleJSONRPCMessageTransactionShow,
 	"txo_list":                handleJSONRPCMessageTxoList,
@@ -212,6 +209,11 @@ var handlers = map[string]func(RPCServer, http.ResponseWriter, *http.Request, an
 	"wallet_send":             handleJSONRPCMessageWalletSend,
 	"wallet_status":           handleJSONRPCMessageWalletStatus,
 	"wallet_unlock":           handleJSONRPCMessageWalletUnlock,
+
+	// Deprecated RPCs
+	"tracemalloc_disable": handleJSONRPCMessageTracemallocDisable,
+	"tracemalloc_enable":  handleJSONRPCMessageTracemallocEnable,
+	"tracemalloc_top":     handleJSONRPCMessageTracemallocTop,
 }
 
 func (rpcServer RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http.Request, message map[string]any) {
@@ -1142,8 +1144,6 @@ func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.Response
 			if ok {
 				item := convertProtobufToClaim(claimMap, transactionData)
 
-				json.NewEncoder(os.Stdout).Encode(item)
-
 				resolutionKey := uri
 				resolutions[resolutionKey] = item
 			}
@@ -1155,7 +1155,7 @@ func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.Response
 
 		if hasFee {
 			if fee.(map[string]any)["currency"] == "LBC" {
-				sendResultResponse(w, fee.(map[string]any)["amount"].(uint64)/100_000_000)
+				sendResultResponse(w, float64(fee.(map[string]any)["amount"].(uint64))/100_000_000.0)
 				return
 			}
 
