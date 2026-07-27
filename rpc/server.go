@@ -375,8 +375,14 @@ func handleJSONRPCMessageAddressUnused(rpcServer RPCServer, w http.ResponseWrite
 }
 
 func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req) // Relaxed // TODO: Maybe allow guests too?
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -397,15 +403,36 @@ func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, r
 }
 
 func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -591,70 +618,76 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 }
 
 func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	searchResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.claimtrie.search",
-		"params":  params,
-	})
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
 
-	decodedBase64, _ := base64.StdEncoding.DecodeString(searchResp["result"].(string))
-	decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+		searchResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.claimtrie.search",
+			"params":  params,
+		})
 
-	claims, ok := decodedProtobuf[1].([]any)
+		decodedBase64, _ := base64.StdEncoding.DecodeString(searchResp["result"].(string))
+		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
 
-	txIDs := []string{}
+		claims, ok := decodedProtobuf[1].([]any)
 
-	if ok {
-		for _, claim := range claims {
-			claimMap := claim.(map[int]any)
-			txidValue, txidOk := claimMap[1]
-			if txidOk {
-				txidBytes := txidValue.([]byte)
-				slices.Reverse(txidBytes)
-				txID := hex.EncodeToString(txidBytes)
-				txIDs = append(txIDs, txID)
+		txIDs := []string{}
+
+		if ok {
+			for _, claim := range claims {
+				claimMap := claim.(map[int]any)
+				txidValue, txidOk := claimMap[1]
+				if txidOk {
+					txidBytes := txidValue.([]byte)
+					slices.Reverse(txidBytes)
+					txID := hex.EncodeToString(txidBytes)
+					txIDs = append(txIDs, txID)
+				}
 			}
 		}
-	}
 
-	transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.transaction.get_batch",
-		"params":  txIDs,
-	})
+		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.get_batch",
+			"params":  txIDs,
+		})
 
-	transactionData := transactionResp["result"].(map[string]any)
+		transactionData := transactionResp["result"].(map[string]any)
 
-	var items []map[string]any = []map[string]any{}
+		var items []map[string]any = []map[string]any{}
 
-	if ok {
-		for _, claim := range claims {
-			claimMap := claim.(map[int]any)
+		if ok {
+			for _, claim := range claims {
+				claimMap := claim.(map[int]any)
 
-			item := convertProtobufToClaim(claimMap, transactionData)
+				item := convertProtobufToClaim(claimMap, transactionData)
 
-			items = append(items, item)
+				items = append(items, item)
+			}
 		}
+
+		totalItems, okTotal := (decodedProtobuf[3]).(uint64)
+
+		var pageSize float64 = 20
+		var totalItemsFloat float64 = 0
+		if okTotal {
+			totalItemsFloat = float64(totalItems)
+		}
+
+		sendResultResponse(w, map[string]any{
+			"items":       items,
+			"page":        1,
+			"page_size":   pageSize,
+			"total_items": totalItems,
+			"total_pages": math.Ceil(totalItemsFloat / pageSize),
+		})
+		return
 	}
-
-	totalItems, okTotal := (decodedProtobuf[3]).(uint64)
-
-	var pageSize float64 = 20
-	var totalItemsFloat float64 = 0
-	if okTotal {
-		totalItemsFloat = float64(totalItems)
-	}
-
-	sendResultResponse(w, map[string]any{
-		"items":       items,
-		"page":        1,
-		"page_size":   pageSize,
-		"total_items": totalItems,
-		"total_pages": math.Ceil(totalItemsFloat / pageSize),
-	})
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageCollectionAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -688,8 +721,14 @@ func handleJSONRPCMessageCollectionList(rpcServer RPCServer, w http.ResponseWrit
 }
 
 func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 501, "NOT IMPLEMENTED")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -738,96 +777,137 @@ func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, 
 }
 
 func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFileList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFileReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFileSave(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFileSetStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 401, "Not exposed for now.")
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
+
+		sendErrorResponse(w, 401, "Not exposed for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
 
-	uri, _ := paramsMap["uri"].(string)
+		var paramsMap map[string]any = params.(map[string]any)
 
-	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.claimtrie.resolve",
-		"params":  []string{uri},
-	})
+		uri, _ := paramsMap["uri"].(string)
 
-	var resolutions map[string]any = map[string]any{}
-
-	_, resultIsString := resolveResp["result"].(string)
-	if resultIsString {
-		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
-
-		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
-
-		var resolutionData []any
-
-		_, okResolution := decodedProtobuf[1].([]any)
-		if okResolution {
-			resolutionData = decodedProtobuf[1].([]any)
-		} else {
-			resolutionData = []any{decodedProtobuf[1]}
-		}
-
-		txIDs := []string{}
-
-		for _, claim := range resolutionData {
-			claimMap := claim.(map[int]any)
-			txidValue, txidOk := claimMap[1]
-			if txidOk {
-				txidBytes := txidValue.([]byte)
-				slices.Reverse(txidBytes)
-				txID := hex.EncodeToString(txidBytes)
-				txIDs = append(txIDs, txID)
-			}
-		}
-
-		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 			"jsonrpc": "2.0",
 			"id":      rand.Int() + 1,
-			"method":  "blockchain.transaction.get_batch",
-			"params":  txIDs,
+			"method":  "blockchain.claimtrie.resolve",
+			"params":  []string{uri},
 		})
 
-		transactionData := transactionResp["result"].(map[string]any)
+		var resolutions map[string]any = map[string]any{}
 
-		for _, claim := range resolutionData {
-			claimMap, ok := claim.(map[int]any)
-			if ok {
-				item := convertProtobufToClaim(claimMap, transactionData)
+		_, resultIsString := resolveResp["result"].(string)
+		if resultIsString {
+			decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
 
-				resolutionKey := uri
-				resolutions[resolutionKey] = item
+			decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+
+			var resolutionData []any
+
+			_, okResolution := decodedProtobuf[1].([]any)
+			if okResolution {
+				resolutionData = decodedProtobuf[1].([]any)
+			} else {
+				resolutionData = []any{decodedProtobuf[1]}
 			}
 
+			txIDs := []string{}
+
+			for _, claim := range resolutionData {
+				claimMap := claim.(map[int]any)
+				txidValue, txidOk := claimMap[1]
+				if txidOk {
+					txidBytes := txidValue.([]byte)
+					slices.Reverse(txidBytes)
+					txID := hex.EncodeToString(txidBytes)
+					txIDs = append(txIDs, txID)
+				}
+			}
+
+			transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+				"jsonrpc": "2.0",
+				"id":      rand.Int() + 1,
+				"method":  "blockchain.transaction.get_batch",
+				"params":  txIDs,
+			})
+
+			transactionData := transactionResp["result"].(map[string]any)
+
+			for _, claim := range resolutionData {
+				claimMap, ok := claim.(map[int]any)
+				if ok {
+					item := convertProtobufToClaim(claimMap, transactionData)
+
+					resolutionKey := uri
+					resolutions[resolutionKey] = item
+				}
+
+			}
 		}
+
+		sdHash := resolutions[uri].(map[string]any)["value"].(map[string]any)["source"].(map[string]any)["sd_hash"].(string)
+
+		streamingURL := "http://localhost:5280/stream/" + sdHash
+
+		sendResultResponse(w, map[string]any{
+			"streaming_url": streamingURL,
+		})
+		return
 	}
-
-	sdHash := resolutions[uri].(map[string]any)["value"].(map[string]any)["source"].(map[string]any)["sd_hash"].(string)
-
-	streamingURL := "http://localhost:5280/stream/" + sdHash
-
-	sendResultResponse(w, map[string]any{
-		"streaming_url": streamingURL,
-	})
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -926,84 +1006,89 @@ func handleJSONRPCMessagePurchaseList(rpcServer RPCServer, w http.ResponseWriter
 }
 
 func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
 
-	_, ok := paramsMap["urls"].([]any)
+		var paramsMap map[string]any = params.(map[string]any)
 
-	var urls []any = []any{}
+		_, ok := paramsMap["urls"].([]any)
 
-	if ok {
-		urls = paramsMap["urls"].([]any)
-	}
+		var urls []any = []any{}
 
-	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.claimtrie.resolve",
-		"params":  urls,
-	})
-
-	var resolutions map[string]any = map[string]any{}
-
-	_, resultIsString := resolveResp["result"].(string)
-	if resultIsString {
-		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
-
-		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
-
-		var resolutionData []any
-
-		_, okResolution := decodedProtobuf[1].([]any)
-		if okResolution {
-			resolutionData = decodedProtobuf[1].([]any)
-		} else {
-			resolutionData = []any{decodedProtobuf[1]}
+		if ok {
+			urls = paramsMap["urls"].([]any)
 		}
 
-		txIDs := []string{}
-
-		for _, claim := range resolutionData {
-			if claim == nil {
-				continue
-			}
-			claimMap := claim.(map[int]any)
-			txidValue, txidOk := claimMap[1]
-			if txidOk {
-				txidBytes := txidValue.([]byte)
-				slices.Reverse(txidBytes)
-				txID := hex.EncodeToString(txidBytes)
-				txIDs = append(txIDs, txID)
-			}
-		}
-
-		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 			"jsonrpc": "2.0",
 			"id":      rand.Int() + 1,
-			"method":  "blockchain.transaction.get_batch",
-			"params":  txIDs,
+			"method":  "blockchain.claimtrie.resolve",
+			"params":  urls,
 		})
 
-		transactionData := transactionResp["result"].(map[string]any)
+		var resolutions map[string]any = map[string]any{}
 
-		for index, claim := range resolutionData {
-			claimMap, ok := claim.(map[int]any)
-			if ok {
-				item := convertProtobufToClaim(claimMap, transactionData)
+		_, resultIsString := resolveResp["result"].(string)
+		if resultIsString {
+			decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
 
-				resolutionKey := urls[index].(string)
-				resolutions[resolutionKey] = item
+			decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+
+			var resolutionData []any
+
+			_, okResolution := decodedProtobuf[1].([]any)
+			if okResolution {
+				resolutionData = decodedProtobuf[1].([]any)
+			} else {
+				resolutionData = []any{decodedProtobuf[1]}
 			}
 
-		}
-	}
+			txIDs := []string{}
 
-	sendResultResponse(w, resolutions)
+			for _, claim := range resolutionData {
+				if claim == nil {
+					continue
+				}
+				claimMap := claim.(map[int]any)
+				txidValue, txidOk := claimMap[1]
+				if txidOk {
+					txidBytes := txidValue.([]byte)
+					slices.Reverse(txidBytes)
+					txID := hex.EncodeToString(txidBytes)
+					txIDs = append(txIDs, txID)
+				}
+			}
+
+			transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+				"jsonrpc": "2.0",
+				"id":      rand.Int() + 1,
+				"method":  "blockchain.transaction.get_batch",
+				"params":  txIDs,
+			})
+
+			transactionData := transactionResp["result"].(map[string]any)
+
+			for index, claim := range resolutionData {
+				claimMap, ok := claim.(map[int]any)
+				if ok {
+					item := convertProtobufToClaim(claimMap, transactionData)
+
+					resolutionKey := urls[index].(string)
+					resolutions[resolutionKey] = item
+				}
+
+			}
+		}
+
+		sendResultResponse(w, resolutions)
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req) // Relaxed
 	if authenticated {
 		_ = user
 		if rpcServer.dhtNode == nil {
@@ -1129,10 +1214,17 @@ func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter,
 }
 
 func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	sendResultResponse(w, map[string]any{
-		"is_running": true,
-	})
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
+
+		sendResultResponse(w, map[string]any{
+			"is_running": true,
+		})
+		return
+	}
+
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1164,86 +1256,92 @@ func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWrite
 }
 
 func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
 
-	uri, _ := paramsMap["uri"].(string)
+		var paramsMap map[string]any = params.(map[string]any)
 
-	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.claimtrie.resolve",
-		"params":  []string{uri},
-	})
+		uri, _ := paramsMap["uri"].(string)
 
-	var resolutions map[string]any = map[string]any{}
-
-	_, resultIsString := resolveResp["result"].(string)
-	if resultIsString {
-		decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
-
-		decodedProtobuf, _ := DecodeRawProto(decodedBase64)
-
-		var resolutionData []any
-
-		_, okResolution := decodedProtobuf[1].([]any)
-		if okResolution {
-			resolutionData = decodedProtobuf[1].([]any)
-		} else {
-			resolutionData = []any{decodedProtobuf[1]}
-		}
-
-		txIDs := []string{}
-
-		for _, claim := range resolutionData {
-			claimMap := claim.(map[int]any)
-			txidValue, txidOk := claimMap[1]
-			if txidOk {
-				txidBytes := txidValue.([]byte)
-				slices.Reverse(txidBytes)
-				txID := hex.EncodeToString(txidBytes)
-				txIDs = append(txIDs, txID)
-			}
-		}
-
-		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 			"jsonrpc": "2.0",
 			"id":      rand.Int() + 1,
-			"method":  "blockchain.transaction.get_batch",
-			"params":  txIDs,
+			"method":  "blockchain.claimtrie.resolve",
+			"params":  []string{uri},
 		})
 
-		transactionData := transactionResp["result"].(map[string]any)
+		var resolutions map[string]any = map[string]any{}
 
-		for _, claim := range resolutionData {
-			claimMap, ok := claim.(map[int]any)
-			if ok {
-				item := convertProtobufToClaim(claimMap, transactionData)
+		_, resultIsString := resolveResp["result"].(string)
+		if resultIsString {
+			decodedBase64, _ := base64.StdEncoding.DecodeString(resolveResp["result"].(string))
 
-				resolutionKey := uri
-				resolutions[resolutionKey] = item
+			decodedProtobuf, _ := DecodeRawProto(decodedBase64)
+
+			var resolutionData []any
+
+			_, okResolution := decodedProtobuf[1].([]any)
+			if okResolution {
+				resolutionData = decodedProtobuf[1].([]any)
+			} else {
+				resolutionData = []any{decodedProtobuf[1]}
 			}
 
-		}
+			txIDs := []string{}
 
-		finalClaim := resolutions[uri]
-		fee, hasFee := finalClaim.(map[string]any)["value"].(map[string]any)["fee"]
+			for _, claim := range resolutionData {
+				claimMap := claim.(map[int]any)
+				txidValue, txidOk := claimMap[1]
+				if txidOk {
+					txidBytes := txidValue.([]byte)
+					slices.Reverse(txidBytes)
+					txID := hex.EncodeToString(txidBytes)
+					txIDs = append(txIDs, txID)
+				}
+			}
 
-		if hasFee {
-			if fee.(map[string]any)["currency"] == "LBC" {
-				sendResultResponse(w, float64(fee.(map[string]any)["amount"].(uint64))/100_000_000.0)
+			transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+				"jsonrpc": "2.0",
+				"id":      rand.Int() + 1,
+				"method":  "blockchain.transaction.get_batch",
+				"params":  txIDs,
+			})
+
+			transactionData := transactionResp["result"].(map[string]any)
+
+			for _, claim := range resolutionData {
+				claimMap, ok := claim.(map[int]any)
+				if ok {
+					item := convertProtobufToClaim(claimMap, transactionData)
+
+					resolutionKey := uri
+					resolutions[resolutionKey] = item
+				}
+
+			}
+
+			finalClaim := resolutions[uri]
+			fee, hasFee := finalClaim.(map[string]any)["value"].(map[string]any)["fee"]
+
+			if hasFee {
+				if fee.(map[string]any)["currency"] == "LBC" {
+					sendResultResponse(w, float64(fee.(map[string]any)["amount"].(uint64))/100_000_000.0)
+					return
+				}
+
+				sendErrorResponse(w, 500, "Cannot convert rate at this moment") // TODO: Convert BTC and USD
 				return
 			}
 
-			sendErrorResponse(w, 500, "Cannot convert rate at this moment") // TODO: Convert BTC and USD
+			sendResultResponse(w, 0)
 			return
 		}
 
-		sendResultResponse(w, 0)
+		sendErrorResponse(w, 501, "Failed to get result")
 		return
 	}
-
-	sendErrorResponse(w, 501, "Failed to get result")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1369,38 +1467,44 @@ func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWri
 }
 
 func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	paramsMap, paramsMapOk := params.(map[string]any)
-	if !paramsMapOk {
-		sendErrorResponse(w, 400, "Parameters not present.")
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
+
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		transactionID, hasTransactionID := paramsMap["txid"]
+		if !hasTransactionID {
+			sendErrorResponse(w, 400, "Missing parameter 'txid'.")
+			return
+		}
+		transactionIDString, transactionIDIsString := transactionID.(string)
+		if !transactionIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'txid' not of type string.")
+			return
+		}
+
+		transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.info",
+			"params":  []string{transactionIDString},
+		})
+
+		errorObj, hasError := transactionResp["error"].(map[string]any)
+
+		if !hasError {
+			sendResultResponse(w, nil) // TODO: Decode transaction and return
+			return
+		}
+
+		sendErrorResponse(w, int(errorObj["code"].(float64)), errorObj["message"].(string))
 		return
 	}
-	transactionID, hasTransactionID := paramsMap["txid"]
-	if !hasTransactionID {
-		sendErrorResponse(w, 400, "Missing parameter 'txid'.")
-		return
-	}
-	transactionIDString, transactionIDIsString := transactionID.(string)
-	if !transactionIDIsString {
-		sendErrorResponse(w, 400, "Parameter 'txid' not of type string.")
-		return
-	}
-
-	transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.transaction.info",
-		"params":  []string{transactionIDString},
-	})
-
-	errorObj, hasError := transactionResp["error"].(map[string]any)
-
-	if !hasError {
-		sendResultResponse(w, nil) // TODO: Decode transaction and return
-		return
-	}
-
-	sendErrorResponse(w, int(errorObj["code"].(float64)), errorObj["message"].(string))
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1464,19 +1568,25 @@ func handleJSONRPCMessageUtxoRelease(rpcServer RPCServer, w http.ResponseWriter,
 }
 
 func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	// Relaxed
-	_, _ = debug.ReadBuildInfo()
+	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
+	if authenticated {
+		_ = user
 
-	sendResultResponse(w, map[string]any{
-		"build":           nil,
-		"lbrynet_version": "0.113.0",
-		"os_release":      nil,
-		"os_system":       nil,
-		"platform":        nil,
-		"processor":       nil,
-		"python_version":  nil,
-		"version":         "0.113.0",
-	})
+		_, _ = debug.ReadBuildInfo()
+
+		sendResultResponse(w, map[string]any{
+			"build":           nil,
+			"lbrynet_version": "0.113.0",
+			"os_release":      nil,
+			"os_system":       nil,
+			"platform":        nil,
+			"processor":       nil,
+			"python_version":  nil,
+			"version":         "0.113.0",
+		})
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1612,12 +1722,19 @@ func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, 
 }
 
 func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	if regexp.MustCompile(`(?:^|\s)LBRY/(\d+)\.(\d+)\.(\d+)(?:\s|$)`).MatchString(req.UserAgent()) {
-		// Backward compatibility
-		sendResultResponse(w, map[string]any{})
+	user, authenticated := rpcServer.authManager.ValidateGuest(req)
+	if authenticated {
+		_ = user
+
+		if regexp.MustCompile(`(?:^|\s)LBRY/(\d+)\.(\d+)\.(\d+)(?:\s|$)`).MatchString(req.UserAgent()) {
+			// Backward compatibility
+			sendResultResponse(w, map[string]any{})
+			return
+		}
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 		return
 	}
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {

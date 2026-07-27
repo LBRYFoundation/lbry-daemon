@@ -22,6 +22,10 @@ func (authManager *AuthManager) IsAdminUser(username string, password string) bo
 // 	return true // TODO: Make only true when dangerous endpoints should be freely accessible
 // }
 
+func (authManager *AuthManager) ValidateGuest(req *http.Request) (*User, bool) {
+	return nil, true
+}
+
 func (authManager *AuthManager) ValidateUser(req *http.Request) (*User, bool) {
 
 	return nil, false
