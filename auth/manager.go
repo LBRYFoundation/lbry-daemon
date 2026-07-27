@@ -27,7 +27,6 @@ func (authManager *AuthManager) ValidateGuest(req *http.Request) (*User, bool) {
 }
 
 func (authManager *AuthManager) ValidateUser(req *http.Request) (*User, bool) {
-
 	return nil, false
 }
 

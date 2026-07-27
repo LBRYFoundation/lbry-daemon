@@ -1684,8 +1684,28 @@ func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, 
 func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			walletID = "default_wallet"
+		}
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+
+		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		if wallet == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+		ok := rpcServer.walletManager.Lock(user, walletIDString)
+
+		sendResultResponse(w, ok)
 		return
 	}
 	handleUnauthorized(w)
@@ -1704,8 +1724,33 @@ func handleJSONRPCMessageWalletReconnect(rpcServer RPCServer, w http.ResponseWri
 func handleJSONRPCMessageWalletRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			sendErrorResponse(w, 400, "Missing parameter 'wallet_id'.")
+			return
+		}
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+
+		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		if wallet == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+		rpcServer.walletManager.Remove(user, walletIDString)
+
+		sendResultResponse(w, map[string]any{
+			"id":   wallet.ID,
+			"name": wallet.Name,
+		})
 		return
 	}
 	handleUnauthorized(w)
@@ -1740,8 +1785,39 @@ func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter
 func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		password, hasPassword := paramsMap["password"]
+		if !hasPassword {
+			sendErrorResponse(w, 400, "Missing parameter 'password'.")
+			return
+		}
+		passwordString, passwordIsString := password.(string)
+		if !passwordIsString {
+			sendErrorResponse(w, 400, "Parameter 'password' not of type string.")
+			return
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			walletID = "default_wallet"
+		}
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+
+		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		if wallet == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+		ok := rpcServer.walletManager.Unlock(user, walletIDString, passwordString)
+
+		sendResultResponse(w, ok)
 		return
 	}
 	handleUnauthorized(w)
