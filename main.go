@@ -1,6 +1,7 @@
 package main
 
 import "fmt"
+import "lbry/daemon/auth"
 import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "lbry/daemon/peer"
@@ -21,12 +22,13 @@ func main() {
 	node, _ := dht.NewNode(4444)
 	//blob.NewManager(node)
 
+	authManager := &auth.AuthManager{}
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
 	walletManager := &wallet.WalletManager{}
 
-	rpcServer := rpc.CreateServer(config, blobManager, node, walletManager)
+	rpcServer := rpc.CreateServer(config, authManager, blobManager, node, walletManager)
 	contentServer := stream.CreateServer(blobManager)
 	reflectorServer := reflector.CreateServer(blobManager)
 	peerServer := peer.CreateServer(blobManager)

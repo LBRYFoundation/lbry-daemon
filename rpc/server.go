@@ -5,6 +5,7 @@ import "encoding/base64"
 import "encoding/hex"
 import "encoding/json"
 import "fmt"
+import "lbry/daemon/auth"
 import "lbry/daemon/blob"
 import "lbry/daemon/dht"
 import "lbry/daemon/settings"
@@ -27,6 +28,7 @@ import "google.golang.org/protobuf/encoding/protowire"
 const TMP_HUB_HOSTNAME = "hub.lbry.grin.io"
 
 type RPCServer struct {
+	authManager   *auth.AuthManager
 	blobManager   *blob.BlobManager
 	configuration settings.Configuration
 	dhtNode       *dht.Node
@@ -34,10 +36,11 @@ type RPCServer struct {
 	walletManager *wallet.WalletManager
 }
 
-func CreateServer(configuration settings.Configuration, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
+func CreateServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{
+		authManager:   authManager,
 		blobManager:   blobManager,
 		configuration: configuration,
 		dhtNode:       dhtNode,
@@ -242,55 +245,133 @@ func (rpcServer RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http
 }
 
 func handleJSONRPCMessageAccountAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountDeposit(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountFund(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountMaxAddressGap(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAccountSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAddressIsMine(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAddressList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageAddressUnused(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -299,18 +380,9 @@ func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter
 }
 
 func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.blobManager == nil {
 			sendErrorResponse(w, 500, "Blob Manager component is not running.")
 			return
@@ -321,7 +393,7 @@ func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, r
 		sendResultResponse(w, resp)
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -337,18 +409,9 @@ func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, re
 }
 
 func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.blobManager == nil {
 			sendErrorResponse(w, 500, "Blob Manager component is not running.")
 			return
@@ -374,22 +437,13 @@ func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter,
 		sendResultResponse(w, resp)
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.blobManager == nil {
 			sendErrorResponse(w, 500, "Blob Manager component is not running.")
 			return
@@ -400,31 +454,67 @@ func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWrit
 		sendResultResponse(w, resp)
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageChannelAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageChannelCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageChannelList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageChannelSign(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageChannelUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageClaimList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func SendJSON(host string, port int, req any) (map[string]any, error) {
@@ -568,15 +658,33 @@ func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter,
 }
 
 func handleJSONRPCMessageCollectionAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageCollectionCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageCollectionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -585,22 +693,19 @@ func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseW
 }
 
 func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		analyzeAudioVolume := false // TODO: Get from configuration
 		available := false
 		var which string // TODO: Get from configuration
@@ -629,7 +734,7 @@ func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, 
 		})
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -725,21 +830,10 @@ func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *ht
 	})
 }
 
-var PROTECT_MODE_ADMIN = true
-
 func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.dhtNode == nil {
 			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
@@ -755,22 +849,13 @@ func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, re
 		})
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.dhtNode == nil {
 			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
@@ -787,27 +872,57 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 		return
 	}
 
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePreferenceGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePreferenceSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePublish(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePurchaseCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessagePurchaseList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -888,18 +1003,9 @@ func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req
 
 func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		if rpcServer.dhtNode == nil {
 			sendErrorResponse(w, 500, "DHT component is not running.")
 			return
@@ -937,22 +1043,13 @@ func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWri
 		})
 		return
 	}
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		paramsMap, paramsMapOk := params.(map[string]any)
 		if !paramsMapOk {
 			sendErrorResponse(w, 400, "Parameters not present.")
@@ -979,42 +1076,24 @@ func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWrite
 		return
 	}
 
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSettingsGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		sendResultResponse(w, rpcServer.configuration.All())
 		return
 	}
 
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		paramsMap, paramsMapOk := params.(map[string]any)
 		if !paramsMapOk {
 			sendErrorResponse(w, 400, "Parameters not present.")
@@ -1046,7 +1125,7 @@ func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter,
 		return
 	}
 
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1057,18 +1136,9 @@ func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req 
 }
 
 func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	mayUse := !PROTECT_MODE_ADMIN
-
-	if PROTECT_MODE_ADMIN {
-		username, password, ok := req.BasicAuth()
-		if ok {
-			if username == os.Getenv("ADMIN_USERNAME") && password == os.Getenv("ADMIN_PASSWORD") {
-				mayUse = true
-			}
-		}
-	}
-
-	if mayUse {
+	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
+	if authenticated {
+		_ = user
 		sendResultResponse(w, "Shutting down")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
@@ -1080,11 +1150,17 @@ func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *h
 		return
 	}
 
-	sendErrorResponse(w, 401, "Not permitted to use this method.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1171,43 +1247,103 @@ func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.Response
 }
 
 func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamRepost(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageStreamUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSupportAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSupportCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSupportList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSupportSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSyncApply(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageSyncHash(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTracemallocDisable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1223,7 +1359,13 @@ func handleJSONRPCMessageTracemallocTop(rpcServer RPCServer, w http.ResponseWrit
 }
 
 func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1262,27 +1404,63 @@ func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWri
 }
 
 func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTxoPlot(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTxoSpend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageTxoSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageUtxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageUtxoRelease(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1302,51 +1480,132 @@ func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req
 }
 
 func handleJSONRPCMessageWalletAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletDecrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletEncrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletExport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	wallets := rpcServer.walletManager.List() // TODO: If protected, validate user and only get user wallets
+
+	walletMaps := []any{}
+
+	for _, wallet := range wallets {
+		walletMaps = append(walletMaps, map[string]any{
+			"id":   wallet.ID,
+			"name": wallet.Name,
+		})
+	}
+
+	paginator := NewPaginator(walletMaps, 0, 0, 0, 0)
+
+	sendResultResponse(w, paginator.ToMap())
+
+	//sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
 }
 
 func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletReconnect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
@@ -1359,5 +1618,15 @@ func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter
 }
 
 func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		_ = user
+		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		return
+	}
+	handleUnauthorized(w)
+}
+
+func handleUnauthorized(w http.ResponseWriter) {
+	sendErrorResponse(w, 401, "Not permitted to use this method.")
 }
