@@ -1550,22 +1550,25 @@ func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter
 }
 
 func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	wallets := rpcServer.walletManager.List() // TODO: If protected, validate user and only get user wallets
+	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	if authenticated {
+		wallets := rpcServer.walletManager.List(user)
 
-	walletMaps := []any{}
+		walletMaps := []any{}
 
-	for _, wallet := range wallets {
-		walletMaps = append(walletMaps, map[string]any{
-			"id":   wallet.ID,
-			"name": wallet.Name,
-		})
+		for _, wallet := range wallets {
+			walletMaps = append(walletMaps, map[string]any{
+				"id":   wallet.ID,
+				"name": wallet.Name,
+			})
+		}
+
+		paginator := NewPaginator(walletMaps, 0, 0, 0, 0)
+
+		sendResultResponse(w, paginator.ToMap())
+		return
 	}
-
-	paginator := NewPaginator(walletMaps, 0, 0, 0, 0)
-
-	sendResultResponse(w, paginator.ToMap())
-
-	//sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+	handleUnauthorized(w)
 }
 
 func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {

@@ -1,5 +1,7 @@
 package wallet
 
+import "lbry/daemon/auth"
+
 type WalletManager struct {
 	wallets []Wallet
 }
@@ -9,7 +11,7 @@ type Wallet struct {
 	Name string
 }
 
-func (walletManager *WalletManager) List() []Wallet {
+func (walletManager *WalletManager) List(user *auth.User) []Wallet {
 	// TODO: Implement
 	return []Wallet{}
 }
