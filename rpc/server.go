@@ -1662,19 +1662,51 @@ func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter
 func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+
 		wallets := rpcServer.walletManager.List(user)
 
-		walletMaps := []any{}
+		if walletID, hasWalletID := paramsMap["wallet_id"]; hasWalletID {
+			walletIDString, walletIDIsString := walletID.(string)
+			if !walletIDIsString {
+				sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+				return
+			}
+			found := rpcServer.walletManager.Get(user, walletIDString)
+			if found == nil {
+				sendErrorResponse(w, 400, "Wallet does not exist.")
+				return
+			}
+			wallets = []wallet.Wallet{*found}
+		}
 
-		for _, wallet := range wallets {
+		walletMaps := []any{}
+		for _, item := range wallets {
 			walletMaps = append(walletMaps, map[string]any{
-				"id":   wallet.ID,
-				"name": wallet.Name,
+				"id":   item.ID,
+				"name": item.Name,
 			})
 		}
 
-		paginator := NewPaginator(walletMaps, 0, 0, 0, 0)
+		page, pageOk := paramsMap["page"].(float64)
+		pageSize, pageSizeOk := paramsMap["page_size"].(float64)
+		total := uint(len(walletMaps))
+		if pageOk && pageSizeOk && page >= 1 && pageSize >= 1 {
+			size := uint(pageSize)
+			start := (uint(page) - 1) * size
+			if start > total {
+				start = total
+			}
+			end := min(start+size, total)
+			paginator := NewPaginator(walletMaps[start:end], uint(page), size, total, (total+size-1)/size)
+			sendResultResponse(w, paginator.ToMap())
+			return
+		}
 
+		paginator := NewPaginator(walletMaps, 1, total, total, min(total, 1))
 		sendResultResponse(w, paginator.ToMap())
 		return
 	}

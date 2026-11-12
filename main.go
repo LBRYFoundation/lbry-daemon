@@ -26,7 +26,10 @@ func main() {
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
-	walletManager := &wallet.WalletManager{}
+	walletManager, err := wallet.NewManager(wallet.DefaultDirectory())
+	if err != nil {
+		fmt.Println("Error when loading wallets:", err)
+	}
 
 	rpcServer := rpc.CreateServer(config, authManager, blobManager, node, walletManager)
 	contentServer := stream.CreateServer(blobManager)
