@@ -1,4 +1,5 @@
-package wallet
+// Package crypt ports lbry-sdk's lbry/crypto/crypt.py.
+package crypt
 
 import (
 	"crypto/aes"
@@ -11,9 +12,9 @@ import (
 // ErrInvalidPassword is returned when a value cannot be decrypted with the given password.
 var ErrInvalidPassword = errors.New("invalid password")
 
-// aesDecrypt mirrors lbry-sdk's lbry.crypto.crypt.aes_decrypt: the key is the
+// Decrypt mirrors lbry-sdk's lbry.crypto.crypt.aes_decrypt: the key is the
 // double SHA-256 of the password and the value is base64(iv || AES-256-CBC(PKCS7(data))).
-func aesDecrypt(password string, value string) (string, error) {
+func Decrypt(password string, value string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(value)
 	if err != nil || len(data) < 2*aes.BlockSize || len(data)%aes.BlockSize != 0 {
 		return "", ErrInvalidPassword
@@ -40,8 +41,8 @@ func aesDecrypt(password string, value string) (string, error) {
 	return string(plain[:len(plain)-pad]), nil
 }
 
-// aesEncrypt is the inverse of aesDecrypt. It is only used to build test fixtures.
-func aesEncrypt(password string, value string, iv []byte) string {
+// Encrypt is the inverse of Decrypt (lbry-sdk aes_encrypt). iv must be 16 bytes.
+func Encrypt(password string, value string, iv []byte) string {
 	first := sha256.Sum256([]byte(password))
 	key := sha256.Sum256(first[:])
 	block, _ := aes.NewCipher(key[:])

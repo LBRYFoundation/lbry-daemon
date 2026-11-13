@@ -1669,7 +1669,9 @@ func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, 
 
 		wallets := rpcServer.walletManager.List(user)
 
+		singleWallet := false
 		if walletID, hasWalletID := paramsMap["wallet_id"]; hasWalletID {
+			singleWallet = true
 			walletIDString, walletIDIsString := walletID.(string)
 			if !walletIDIsString {
 				sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
@@ -1691,23 +1693,15 @@ func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, 
 			})
 		}
 
-		page, pageOk := paramsMap["page"].(float64)
-		pageSize, pageSizeOk := paramsMap["page_size"].(float64)
-		total := uint(len(walletMaps))
-		if pageOk && pageSizeOk && page >= 1 && pageSize >= 1 {
-			size := uint(pageSize)
-			start := (uint(page) - 1) * size
-			if start > total {
-				start = total
-			}
-			end := min(start+size, total)
-			paginator := NewPaginator(walletMaps[start:end], uint(page), size, total, (total+size-1)/size)
-			sendResultResponse(w, paginator.ToMap())
+		if singleWallet {
+			// lbry-sdk: paginate_list([wallet], 1, 1), whatever page arguments were given.
+			sendResultResponse(w, Paginate(walletMaps, 1, 1).ToMap())
 			return
 		}
 
-		paginator := NewPaginator(walletMaps, 1, total, total, min(total, 1))
-		sendResultResponse(w, paginator.ToMap())
+		page, _ := paramsMap["page"].(float64)
+		pageSize, _ := paramsMap["page_size"].(float64)
+		sendResultResponse(w, Paginate(walletMaps, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
 		return
 	}
 	handleUnauthorized(w)
