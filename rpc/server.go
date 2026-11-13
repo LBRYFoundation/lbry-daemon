@@ -1518,6 +1518,15 @@ func handleJSONRPCMessageRoutingTableGet(rpcServer *RPCServer, w http.ResponseWr
 	handleUnauthorized(w)
 }
 
+// settingsErrorCode answers 400 when the request named a bad setting or value, and 500 when the
+// daemon itself failed (for example it couldn't write the settings file).
+func settingsErrorCode(err error) int {
+	if settings.IsUserError(err) {
+		return 400
+	}
+	return 500
+}
+
 func handleJSONRPCMessageSettingsClear(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
@@ -1540,7 +1549,7 @@ func handleJSONRPCMessageSettingsClear(rpcServer *RPCServer, w http.ResponseWrit
 			})
 			return
 		}
-		sendErrorResponse(w, 500, err.Error())
+		sendErrorResponse(w, settingsErrorCode(err), err.Error())
 		return
 	}
 
@@ -1598,7 +1607,7 @@ func handleJSONRPCMessageSettingsSet(rpcServer *RPCServer, w http.ResponseWriter
 			})
 			return
 		}
-		sendErrorResponse(w, 500, err.Error())
+		sendErrorResponse(w, settingsErrorCode(err), err.Error())
 		return
 	}
 
