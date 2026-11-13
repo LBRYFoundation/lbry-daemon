@@ -47,7 +47,8 @@ func main() {
 	if rpcServer != nil {
 		wg.Go(func() {
 			fmt.Println("Starting RPC server on port 5279.")
-			listener, err := getTCPListener("", 5279)
+			// Loopback only. Reading the address from the settings file (the SDK's "api" setting) is a separate change.
+			listener, err := getTCPListener("127.0.0.1", 5279)
 			if err != nil {
 				fmt.Println("Error when getting TCP listener.")
 				return
