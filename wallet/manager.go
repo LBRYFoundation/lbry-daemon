@@ -6,11 +6,6 @@ type DefaultWalletManager struct {
 	wallets []Wallet
 }
 
-type Wallet struct {
-	ID   string
-	Name string
-}
-
 func NewDefaultWalletManager() WalletManager {
 	return &DefaultWalletManager{}
 }

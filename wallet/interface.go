@@ -9,3 +9,8 @@ type WalletManager interface {
 	Lock(user *auth.User, id string) bool
 	Unlock(user *auth.User, id string, password string) bool
 }
+
+type Wallet struct {
+	ID   string
+	Name string
+}
