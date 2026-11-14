@@ -1802,7 +1802,34 @@ func handleJSONRPCMessageWalletStatus(rpcServer *RPCServer, w http.ResponseWrite
 			sendResultResponse(w, map[string]any{})
 			return
 		}
-		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			sendErrorResponse(w, 400, "Missing parameter 'wallet_id'.")
+			return
+		}
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+
+		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		if wallet == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+
+		sendResultResponse(w, map[string]any{
+			"is_encrypted": wallet.IsEncrypted(),
+			"is_syncing":   wallet.IsSyncing(),
+			"is_locked":    wallet.IsLocked(),
+		})
 		return
 	}
 	handleUnauthorized(w)

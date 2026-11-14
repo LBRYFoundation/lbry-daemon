@@ -19,6 +19,14 @@ type Wallet struct {
 	password string // set while unlocked with a password, enables Lock
 }
 
+func (wallet *Wallet) IsEncrypted() bool {
+	return false
+}
+
 func (wallet *Wallet) IsLocked() bool {
 	return wallet.locked
+}
+
+func (wallet *Wallet) IsSyncing() bool {
+	return false
 }
