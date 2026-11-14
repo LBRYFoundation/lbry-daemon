@@ -1805,13 +1805,11 @@ func handleJSONRPCMessageWalletStatus(rpcServer *RPCServer, w http.ResponseWrite
 
 		paramsMap, paramsMapOk := params.(map[string]any)
 		if !paramsMapOk {
-			sendErrorResponse(w, 400, "Parameters not present.")
-			return
+			paramsMap = map[string]any{}
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			sendErrorResponse(w, 400, "Missing parameter 'wallet_id'.")
-			return
+			walletID = "default_wallet"
 		}
 		walletIDString, walletIDIsString := walletID.(string)
 		if !walletIDIsString {

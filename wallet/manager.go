@@ -69,7 +69,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 }
 
 func (wallet *Wallet) snapshot() Wallet {
-	return Wallet{ID: wallet.ID, Name: wallet.Name, locked: wallet.locked}
+	return Wallet{ID: wallet.ID, Name: wallet.Name, locked: wallet.locked, encrypted: wallet.locked || wallet.password != ""}
 }
 
 func (walletManager *DefaultWalletManager) List(user *auth.User) []Wallet {

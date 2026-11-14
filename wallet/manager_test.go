@@ -150,3 +150,26 @@ func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 		t.Fatalf("Load did not pick up the wallet: %v", err)
 	}
 }
+
+// lbry-sdk Wallet.is_encrypted: the wallet is locked, or unlocked with a password.
+func TestIsEncrypted(t *testing.T) {
+	manager := fixture(t)
+	if manager.Get(nil, "default_wallet").IsEncrypted() {
+		t.Fatal("an unencrypted wallet must not report encrypted")
+	}
+	if !manager.Get(nil, "secret").IsEncrypted() {
+		t.Fatal("a locked wallet must report encrypted")
+	}
+	if manager.Unlock(nil, "secret", "wrong"); !manager.Get(nil, "secret").IsEncrypted() {
+		t.Fatal("a failed unlock leaves the wallet encrypted")
+	}
+	if !manager.Unlock(nil, "secret", "hunter2") || !manager.Get(nil, "secret").IsEncrypted() {
+		t.Fatal("a wallet unlocked with a password is still encrypted")
+	}
+	if !manager.Lock(nil, "secret") || !manager.Get(nil, "secret").IsEncrypted() {
+		t.Fatal("a locked wallet must report encrypted")
+	}
+	if list := manager.List(nil); list[0].IsEncrypted() || !list[1].IsEncrypted() {
+		t.Fatalf("List lost the encrypted state: %+v", list)
+	}
+}
