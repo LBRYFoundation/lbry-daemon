@@ -2,9 +2,11 @@ package rpc
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"lbry/daemon/auth"
 	"lbry/daemon/blob"
@@ -756,27 +758,66 @@ func handleJSONRPCMessageClaimList(rpcServer *RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
+// Hub connection timeouts. Variables so that tests can shorten them.
+var (
+	HubDialTimeout  = 5 * time.Second
+	HubReplyTimeout = 15 * time.Second
+)
+
+// SendJSON sends one JSON-RPC request to a hub and returns its reply. The host is resolved and every
+// address is tried in turn, so one address that is dead or silent does not stop the request. It returns an
+// error when no address answers with a JSON object.
 func SendJSON(host string, port int, req any) (map[string]any, error) {
-	conn, err := net.Dial("tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	addresses, err := net.DefaultResolver.LookupHost(context.Background(), host)
+	if err != nil {
+		return nil, err
+	}
+	for i, address := range addresses {
+		addresses[i] = net.JoinHostPort(address, strconv.Itoa(port))
+	}
+	return SendJSONToAddresses(addresses, req)
+}
+
+// SendJSONToAddresses tries each address ("host:port") in order and returns the first reply.
+func SendJSONToAddresses(addresses []string, req any) (map[string]any, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	errs := []error{}
+	for _, address := range addresses {
+		resp, err := sendJSONToAddress(address, data)
+		if err == nil {
+			return resp, nil
+		}
+		errs = append(errs, fmt.Errorf("%s: %w", address, err))
+	}
+	if len(errs) == 0 {
+		return nil, errors.New("no hub address to try")
+	}
+	return nil, fmt.Errorf("no hub address answered: %w", errors.Join(errs...))
+}
+
+func sendJSONToAddress(address string, data []byte) (map[string]any, error) {
+	conn, err := net.DialTimeout("tcp", address, HubDialTimeout)
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
-
-	data, _ := json.Marshal(req)
-
-	conn.Write(append(data, '\n'))
-
-	line, _ := bufio.NewReader(conn).ReadString('\n')
-	if len(line) > 0 && line[len(line)-1] == '\n' {
-		line = line[:len(line)-1]
+	if err := conn.SetDeadline(time.Now().Add(HubReplyTimeout)); err != nil {
+		return nil, err
 	}
-	if len(line) > 0 && line[len(line)-1] == '\r' {
-		line = line[:len(line)-1]
+	if _, err := conn.Write(append(data, '\n')); err != nil {
+		return nil, err
 	}
-
+	line, err := bufio.NewReader(conn).ReadString('\n')
+	if err != nil && line == "" {
+		return nil, err
+	}
 	var resp map[string]any
-	json.Unmarshal([]byte(line), &resp)
+	if err := json.Unmarshal([]byte(strings.TrimSpace(line)), &resp); err != nil {
+		return nil, fmt.Errorf("unexpected reply: %w", err)
+	}
 	return resp, nil
 }
 
@@ -829,16 +870,39 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 	return m, nil
 }
 
+// claimSearchPaging returns the requested page and page size, defaulting to the SDK's 1 and 10.
+func claimSearchPaging(params any) (int64, int64) {
+	page, pageSize := int64(1), int64(10)
+	if paramsMap, ok := params.(map[string]any); ok {
+		if value, err := GetIntegerParameter(paramsMap, "page", false, 1); err == nil && value >= 1 {
+			page = value
+		}
+		if value, err := GetIntegerParameter(paramsMap, "page_size", false, 10); err == nil && value >= 1 {
+			pageSize = value
+		}
+	}
+	return page, pageSize
+}
+
 func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	searchResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+	searchResp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.search",
 		"params":  params,
 	})
+	if err != nil {
+		sendErrorResponse(w, 502, "The hub did not answer: "+err.Error())
+		return
+	}
+	encoded, encodedOk := searchResp["result"].(string)
+	if !encodedOk {
+		sendErrorResponse(w, 502, "The hub sent an unexpected reply to the search.")
+		return
+	}
 
-	decodedBase64, _ := base64.StdEncoding.DecodeString(searchResp["result"].(string))
+	decodedBase64, _ := base64.StdEncoding.DecodeString(encoded)
 	decodedProtobuf, _ := DecodeRawProto(decodedBase64)
 
 	claims, ok := decodedProtobuf[1].([]any)
@@ -858,14 +922,24 @@ func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter
 		}
 	}
 
-	transactionResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.transaction.get_batch",
-		"params":  txIDs,
-	})
-
-	transactionData := transactionResp["result"].(map[string]any)
+	transactionData := map[string]any{}
+	if len(txIDs) > 0 {
+		transactionResp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+			"jsonrpc": "2.0",
+			"id":      rand.Int() + 1,
+			"method":  "blockchain.transaction.get_batch",
+			"params":  txIDs,
+		})
+		if err != nil {
+			sendErrorResponse(w, 502, "The hub did not answer: "+err.Error())
+			return
+		}
+		var transactionOk bool
+		if transactionData, transactionOk = transactionResp["result"].(map[string]any); !transactionOk {
+			sendErrorResponse(w, 502, "The hub sent an unexpected reply to the transaction request.")
+			return
+		}
+	}
 
 	var items []map[string]any = []map[string]any{}
 
@@ -881,7 +955,7 @@ func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter
 
 	totalItems, okTotal := (decodedProtobuf[3]).(uint64)
 
-	var pageSize float64 = 20
+	page, pageSize := claimSearchPaging(params)
 	var totalItemsFloat float64 = 0
 	if okTotal {
 		totalItemsFloat = float64(totalItems)
@@ -889,10 +963,10 @@ func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter
 
 	sendResultResponse(w, map[string]any{
 		"items":       items,
-		"page":        1,
+		"page":        page,
 		"page_size":   pageSize,
 		"total_items": totalItems,
-		"total_pages": math.Ceil(totalItemsFloat / pageSize),
+		"total_pages": math.Ceil(totalItemsFloat / float64(pageSize)),
 	})
 }
 
