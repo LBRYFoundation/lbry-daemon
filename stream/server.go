@@ -27,14 +27,14 @@ func NewContentServer(blobManager *blob.BlobManager) *StreamServer {
 	return server
 }
 
-func (contentServer StreamServer) Start(listener net.Listener) {
+func (contentServer *StreamServer) Start(listener net.Listener) {
 	err := contentServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting Stream server.")
 	}
 }
 
-func (contentServer StreamServer) handleStream(w http.ResponseWriter, req *http.Request) {
+func (contentServer *StreamServer) handleStream(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
 	w.Header().Set("Accept-Ranges", "bytes")
@@ -59,7 +59,7 @@ func (contentServer StreamServer) handleStream(w http.ResponseWriter, req *http.
 	http.Error(w, "HTTP method not allowed.", http.StatusMethodNotAllowed)
 }
 
-func (contentServer StreamServer) handleSDHash(w http.ResponseWriter, req *http.Request, sdHash string) {
+func (contentServer *StreamServer) handleSDHash(w http.ResponseWriter, req *http.Request, sdHash string) {
 	blobData, ok := contentServer.blobManager.Get(sdHash)
 	if !ok {
 		http.Error(w, "Blob not found.", http.StatusNotFound)

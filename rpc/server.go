@@ -53,7 +53,7 @@ func NewRPCServer(configuration settings.Configuration, authManager *auth.AuthMa
 	return server
 }
 
-func (rpcServer RPCServer) Start(listener net.Listener) {
+func (rpcServer *RPCServer) Start(listener net.Listener) {
 	err := rpcServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting RPC server.")
@@ -77,7 +77,7 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 	})
 }
 
-func (rpcServer RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Request) {
+func (rpcServer *RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -123,7 +123,7 @@ func (rpcServer RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Reques
 	sendErrorResponse(w, -32700, "HTTP method not allowed.")
 }
 
-var handlers = map[string]func(RPCServer, http.ResponseWriter, *http.Request, any){
+var handlers = map[string]func(*RPCServer, http.ResponseWriter, *http.Request, any){
 	"account_add":             handleJSONRPCMessageAccountAdd,
 	"account_balance":         handleJSONRPCMessageAccountBalance,
 	"account_create":          handleJSONRPCMessageAccountCreate,
@@ -219,7 +219,7 @@ var handlers = map[string]func(RPCServer, http.ResponseWriter, *http.Request, an
 	"tracemalloc_top":     handleJSONRPCMessageTracemallocTop,
 }
 
-func (rpcServer RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http.Request, message map[string]any) {
+func (rpcServer *RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http.Request, message map[string]any) {
 	method, existsMethod := message["method"].(string)
 	params, existsParams := message["params"]
 
@@ -244,7 +244,7 @@ func (rpcServer RPCServer) handleJSONRPCMessage(w http.ResponseWriter, req *http
 	sendErrorResponse(w, -32601, "Unknown JSON-RPC method.")
 }
 
-func handleJSONRPCMessageAccountAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountAdd(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -254,7 +254,7 @@ func handleJSONRPCMessageAccountAdd(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountBalance(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -264,7 +264,7 @@ func handleJSONRPCMessageAccountBalance(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -274,7 +274,7 @@ func handleJSONRPCMessageAccountCreate(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountDeposit(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountDeposit(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -284,7 +284,7 @@ func handleJSONRPCMessageAccountDeposit(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountFund(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountFund(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -294,7 +294,7 @@ func handleJSONRPCMessageAccountFund(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -304,7 +304,7 @@ func handleJSONRPCMessageAccountList(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountMaxAddressGap(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountMaxAddressGap(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -314,7 +314,7 @@ func handleJSONRPCMessageAccountMaxAddressGap(rpcServer RPCServer, w http.Respon
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountRemove(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -324,7 +324,7 @@ func handleJSONRPCMessageAccountRemove(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountSend(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -334,7 +334,7 @@ func handleJSONRPCMessageAccountSend(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAccountSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -344,7 +344,7 @@ func handleJSONRPCMessageAccountSet(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAddressIsMine(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAddressIsMine(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -354,7 +354,7 @@ func handleJSONRPCMessageAddressIsMine(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAddressList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAddressList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -364,7 +364,7 @@ func handleJSONRPCMessageAddressList(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageAddressUnused(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageAddressUnused(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -374,7 +374,7 @@ func handleJSONRPCMessageAddressUnused(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobAnnounce(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req) // Relaxed // TODO: Maybe allow guests too?
 	if authenticated {
 		_ = user
@@ -385,7 +385,7 @@ func handleJSONRPCMessageBlobAnnounce(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobClean(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -402,7 +402,7 @@ func handleJSONRPCMessageBlobClean(rpcServer RPCServer, w http.ResponseWriter, r
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobDelete(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -413,7 +413,7 @@ func handleJSONRPCMessageBlobDelete(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -424,7 +424,7 @@ func handleJSONRPCMessageBlobGet(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -435,7 +435,7 @@ func handleJSONRPCMessageBlobList(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobReflect(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -467,7 +467,7 @@ func handleJSONRPCMessageBlobReflect(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageBlobReflectAll(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -484,7 +484,7 @@ func handleJSONRPCMessageBlobReflectAll(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageChannelAbandon(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -494,7 +494,7 @@ func handleJSONRPCMessageChannelAbandon(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageChannelCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -504,7 +504,7 @@ func handleJSONRPCMessageChannelCreate(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageChannelList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -514,7 +514,7 @@ func handleJSONRPCMessageChannelList(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelSign(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageChannelSign(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -524,7 +524,7 @@ func handleJSONRPCMessageChannelSign(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageChannelUpdate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -534,7 +534,7 @@ func handleJSONRPCMessageChannelUpdate(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageClaimList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageClaimList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -617,7 +617,7 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 	return m, nil
 }
 
-func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -690,7 +690,7 @@ func handleJSONRPCMessageClaimSearch(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageCollectionAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageCollectionAbandon(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -700,7 +700,7 @@ func handleJSONRPCMessageCollectionAbandon(rpcServer RPCServer, w http.ResponseW
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageCollectionCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageCollectionCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -710,7 +710,7 @@ func handleJSONRPCMessageCollectionCreate(rpcServer RPCServer, w http.ResponseWr
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageCollectionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageCollectionList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -720,7 +720,7 @@ func handleJSONRPCMessageCollectionList(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageCollectionResolve(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -731,7 +731,7 @@ func handleJSONRPCMessageCollectionResolve(rpcServer RPCServer, w http.ResponseW
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageCollectionUpdate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -741,7 +741,7 @@ func handleJSONRPCMessageCollectionUpdate(rpcServer RPCServer, w http.ResponseWr
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFfmpegFind(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -776,7 +776,7 @@ func handleJSONRPCMessageFfmpegFind(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFileDelete(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -787,7 +787,7 @@ func handleJSONRPCMessageFileDelete(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFileList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFileList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -798,7 +798,7 @@ func handleJSONRPCMessageFileList(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFileReflect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFileReflect(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -809,7 +809,7 @@ func handleJSONRPCMessageFileReflect(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFileSave(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFileSave(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -820,7 +820,7 @@ func handleJSONRPCMessageFileSave(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageFileSetStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageFileSetStatus(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -831,7 +831,7 @@ func handleJSONRPCMessageFileSetStatus(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -910,7 +910,7 @@ func handleJSONRPCMessageGet(rpcServer RPCServer, w http.ResponseWriter, req *ht
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePeerList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -932,7 +932,7 @@ func handleJSONRPCMessagePeerList(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePeerPing(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -955,7 +955,7 @@ func handleJSONRPCMessagePeerPing(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePreferenceGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePreferenceGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -965,7 +965,7 @@ func handleJSONRPCMessagePreferenceGet(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePreferenceSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -975,7 +975,7 @@ func handleJSONRPCMessagePreferenceSet(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePublish(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePublish(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -985,7 +985,7 @@ func handleJSONRPCMessagePublish(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePurchaseCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePurchaseCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -995,7 +995,7 @@ func handleJSONRPCMessagePurchaseCreate(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessagePurchaseList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessagePurchaseList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1005,7 +1005,7 @@ func handleJSONRPCMessagePurchaseList(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageResolve(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1087,7 +1087,7 @@ func handleJSONRPCMessageResolve(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageRoutingTableGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1131,7 +1131,7 @@ func handleJSONRPCMessageRoutingTableGet(rpcServer RPCServer, w http.ResponseWri
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSettingsClear(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -1164,7 +1164,7 @@ func handleJSONRPCMessageSettingsClear(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSettingsGet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSettingsGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -1175,7 +1175,7 @@ func handleJSONRPCMessageSettingsGet(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSettingsSet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -1213,7 +1213,7 @@ func handleJSONRPCMessageSettingsSet(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStatus(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1227,7 +1227,7 @@ func handleJSONRPCMessageStatus(rpcServer RPCServer, w http.ResponseWriter, req 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStop(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateAdminUser(req)
 	if authenticated {
 		_ = user
@@ -1245,7 +1245,7 @@ func handleJSONRPCMessageStop(rpcServer RPCServer, w http.ResponseWriter, req *h
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamAbandon(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1255,7 +1255,7 @@ func handleJSONRPCMessageStreamAbandon(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamCostEstimate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1344,7 +1344,7 @@ func handleJSONRPCMessageStreamCostEstimate(rpcServer RPCServer, w http.Response
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1354,7 +1354,7 @@ func handleJSONRPCMessageStreamCreate(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1364,7 +1364,7 @@ func handleJSONRPCMessageStreamList(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamRepost(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamRepost(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1374,7 +1374,7 @@ func handleJSONRPCMessageStreamRepost(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageStreamUpdate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageStreamUpdate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1384,7 +1384,7 @@ func handleJSONRPCMessageStreamUpdate(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSupportAbandon(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSupportAbandon(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1394,7 +1394,7 @@ func handleJSONRPCMessageSupportAbandon(rpcServer RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSupportCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSupportCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1404,7 +1404,7 @@ func handleJSONRPCMessageSupportCreate(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSupportList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSupportList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1414,7 +1414,7 @@ func handleJSONRPCMessageSupportList(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSupportSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSupportSum(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1424,7 +1424,7 @@ func handleJSONRPCMessageSupportSum(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSyncApply(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSyncApply(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1434,7 +1434,7 @@ func handleJSONRPCMessageSyncApply(rpcServer RPCServer, w http.ResponseWriter, r
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageSyncHash(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageSyncHash(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1444,19 +1444,19 @@ func handleJSONRPCMessageSyncHash(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTracemallocDisable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTracemallocDisable(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
-func handleJSONRPCMessageTracemallocEnable(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTracemallocEnable(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
-func handleJSONRPCMessageTracemallocTop(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTracemallocTop(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 404, "Tracemalloc has been deprecated.")
 }
 
-func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTransactionList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1466,7 +1466,7 @@ func handleJSONRPCMessageTransactionList(rpcServer RPCServer, w http.ResponseWri
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTransactionShow(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1507,7 +1507,7 @@ func handleJSONRPCMessageTransactionShow(rpcServer RPCServer, w http.ResponseWri
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTxoList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1517,7 +1517,7 @@ func handleJSONRPCMessageTxoList(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTxoPlot(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTxoPlot(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1527,7 +1527,7 @@ func handleJSONRPCMessageTxoPlot(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTxoSpend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTxoSpend(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1537,7 +1537,7 @@ func handleJSONRPCMessageTxoSpend(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageTxoSum(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageTxoSum(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1547,7 +1547,7 @@ func handleJSONRPCMessageTxoSum(rpcServer RPCServer, w http.ResponseWriter, req 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageUtxoList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageUtxoList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1557,7 +1557,7 @@ func handleJSONRPCMessageUtxoList(rpcServer RPCServer, w http.ResponseWriter, re
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageUtxoRelease(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageUtxoRelease(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1567,7 +1567,7 @@ func handleJSONRPCMessageUtxoRelease(rpcServer RPCServer, w http.ResponseWriter,
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageVersion(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req) // Relaxed
 	if authenticated {
 		_ = user
@@ -1589,7 +1589,7 @@ func handleJSONRPCMessageVersion(rpcServer RPCServer, w http.ResponseWriter, req
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletAdd(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletAdd(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1599,7 +1599,7 @@ func handleJSONRPCMessageWalletAdd(rpcServer RPCServer, w http.ResponseWriter, r
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletBalance(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1609,7 +1609,7 @@ func handleJSONRPCMessageWalletBalance(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletCreate(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1619,7 +1619,7 @@ func handleJSONRPCMessageWalletCreate(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletDecrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletDecrypt(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1629,7 +1629,7 @@ func handleJSONRPCMessageWalletDecrypt(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletEncrypt(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletEncrypt(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1639,7 +1639,7 @@ func handleJSONRPCMessageWalletEncrypt(rpcServer RPCServer, w http.ResponseWrite
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletExport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletExport(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1649,7 +1649,7 @@ func handleJSONRPCMessageWalletExport(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletImport(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1659,7 +1659,7 @@ func handleJSONRPCMessageWalletImport(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		wallets := rpcServer.walletManager.List(user)
@@ -1681,7 +1681,7 @@ func handleJSONRPCMessageWalletList(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletLock(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		paramsMap, paramsMapOk := params.(map[string]any)
@@ -1711,7 +1711,7 @@ func handleJSONRPCMessageWalletLock(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletReconnect(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletReconnect(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1721,7 +1721,7 @@ func handleJSONRPCMessageWalletReconnect(rpcServer RPCServer, w http.ResponseWri
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletRemove(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletRemove(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		paramsMap, paramsMapOk := params.(map[string]any)
@@ -1756,7 +1756,7 @@ func handleJSONRPCMessageWalletRemove(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletSend(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		_ = user
@@ -1766,7 +1766,7 @@ func handleJSONRPCMessageWalletSend(rpcServer RPCServer, w http.ResponseWriter, 
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletStatus(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateGuest(req)
 	if authenticated {
 		_ = user
@@ -1782,7 +1782,7 @@ func handleJSONRPCMessageWalletStatus(rpcServer RPCServer, w http.ResponseWriter
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageWalletUnlock(rpcServer RPCServer, w http.ResponseWriter, req *http.Request, params any) {
+func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
 		paramsMap, paramsMapOk := params.(map[string]any)

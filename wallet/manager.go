@@ -6,6 +6,8 @@ type DefaultWalletManager struct {
 	wallets []Wallet
 }
 
+var _ WalletManager = (*DefaultWalletManager)(nil)
+
 func NewDefaultWalletManager() WalletManager {
 	return &DefaultWalletManager{}
 }
