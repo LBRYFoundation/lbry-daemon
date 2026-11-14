@@ -8,7 +8,7 @@ import (
 )
 
 // environment is everything the default directories depend on, so tests can supply a fake one.
-type environment struct {
+type Environment struct {
 	goos     string
 	home     string
 	getenv   func(string) string
@@ -16,9 +16,9 @@ type environment struct {
 	readFile func(path string) ([]byte, error)
 }
 
-func realEnvironment(goos string) environment {
+func realEnvironment(goos string) Environment {
 	home, _ := os.UserHomeDir()
-	return environment{
+	return Environment{
 		goos:   goos,
 		home:   home,
 		getenv: os.Getenv,
@@ -36,7 +36,7 @@ var xdgDownload = regexp.MustCompile(`(?m)^XDG_DOWNLOAD_DIR=(.+)$`)
 // machine that already runs lbrynet keeps using the same folders. LBRY_DATA_DIR, LBRY_WALLET_DIR and
 // LBRY_DOWNLOAD_DIR override the defaults (the data and wallet directories cannot be changed once
 // running, because the settings file lives inside the data directory).
-func defaultDirs(env environment) (dataDir, walletDir, downloadDir string) {
+func defaultDirs(env Environment) (dataDir, walletDir, downloadDir string) {
 	switch env.goos {
 	case "windows":
 		appData := env.getenv("APPDATA")
@@ -83,7 +83,7 @@ func defaultDirs(env environment) (dataDir, walletDir, downloadDir string) {
 	return dataDir, walletDir, downloadDir
 }
 
-func linuxDownloadDir(env environment) string {
+func linuxDownloadDir(env Environment) string {
 	configHome := env.getenv("XDG_CONFIG_HOME")
 	if configHome == "" {
 		configHome = filepath.Join(env.home, ".config")
@@ -102,7 +102,7 @@ func linuxDownloadDir(env environment) string {
 }
 
 // expandPath resolves ~ and $VARS in a path setting, like the SDK does when it reads one.
-func expandPath(env environment, p string) string {
+func expandPath(env Environment, p string) string {
 	p = os.Expand(p, env.getenv)
 	if p == "~" || strings.HasPrefix(p, "~/") || strings.HasPrefix(p, `~\`) {
 		p = filepath.Join(env.home, p[1:])

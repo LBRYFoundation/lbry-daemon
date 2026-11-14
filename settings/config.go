@@ -20,12 +20,12 @@ const settingsFileName = "daemon_settings.json"
 // Configuration is the daemon's settings. Copies share one store, so it is safe to pass by value and
 // to use from several requests at once.
 type Configuration struct {
-	s *store
+	s *Store
 }
 
-type store struct {
+type Store struct {
 	mu        sync.RWMutex
-	env       environment
+	env       Environment
 	path      string
 	defaults  map[string]any
 	overrides map[string]any
@@ -47,9 +47,9 @@ func InitializeConfiguration() Configuration {
 
 // Open builds a Configuration for env, reading the settings file if there is one. It always returns
 // a usable Configuration; the error describes anything wrong with the file.
-func Open(env environment) (Configuration, error) {
+func Open(env Environment) (Configuration, error) {
 	dataDir, walletDir, downloadDir := defaultDirs(env)
-	s := &store{
+	s := &Store{
 		env:       env,
 		path:      filepath.Join(dataDir, settingsFileName),
 		defaults:  map[string]any{},
@@ -71,7 +71,7 @@ func Open(env environment) (Configuration, error) {
 	return Configuration{s: s}, s.load()
 }
 
-func (s *store) load() error {
+func (s *Store) load() error {
 	data, err := os.ReadFile(s.path)
 	if os.IsNotExist(err) {
 		return nil
@@ -117,14 +117,14 @@ func (s *store) load() error {
 	return nil
 }
 
-func (s *store) effective(d *definition) any {
+func (s *Store) effective(d *Definition) any {
 	if v, ok := s.overrides[d.name]; ok {
 		return v
 	}
 	return s.defaults[d.name]
 }
 
-func (s *store) exported(d *definition) any {
+func (s *Store) exported(d *Definition) any {
 	value := s.effective(d)
 	if d.kind == kindPath {
 		if p, ok := value.(string); ok {
@@ -231,7 +231,7 @@ func parseJSONString(value any) any {
 }
 
 // save writes the overrides and the preserved extras. The caller holds the write lock.
-func (s *store) save() error {
+func (s *Store) save() error {
 	file := make(map[string]any, len(s.overrides)+len(s.extra))
 	for key, raw := range s.extra {
 		file[key] = raw
