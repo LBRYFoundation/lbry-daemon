@@ -28,11 +28,6 @@ type Account struct {
 	Seed       string `json:"seed"`
 	PrivateKey string `json:"private_key"`
 	PublicKey  string `json:"public_key"`
-
-	// Filled by Unlock, cleared by Lock. Mirrors lbry-sdk's Account.decrypt,
-	// which keeps the plain seed and private key on the account.
-	decryptedSeed       string
-	decryptedPrivateKey string
 }
 
 type Preference struct {
@@ -83,12 +78,17 @@ func (account *Account) Decrypt(password string) error {
 	var decryptedSeed string
 	var decryptedPrivateKey string
 
+	var err error
 	if account.Seed != "" {
-		decryptedSeed, _ = crypt.Decrypt(password, account.Seed)
+		if decryptedSeed, err = crypt.Decrypt(password, account.Seed); err != nil {
+			return err
+		}
 	}
 
 	if account.PrivateKey != "" {
-		decryptedPrivateKey, _ = crypt.Decrypt(password, account.PrivateKey)
+		if decryptedPrivateKey, err = crypt.Decrypt(password, account.PrivateKey); err != nil {
+			return err
+		}
 	}
 
 	account.Seed = decryptedSeed
