@@ -18,3 +18,7 @@ type Wallet struct {
 	accounts []Account
 	password string // set while unlocked with a password, enables Lock
 }
+
+func (wallet *Wallet) IsLocked() bool {
+	return wallet.locked
+}

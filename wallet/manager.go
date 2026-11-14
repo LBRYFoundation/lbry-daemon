@@ -38,9 +38,9 @@ type DefaultWalletManager struct {
 
 var _ WalletManager = (*DefaultWalletManager)(nil)
 
-func NewDefaultWalletManager() WalletManager {
+func NewDefaultWalletManager(directory string) WalletManager {
 	return &DefaultWalletManager{
-		directory: GetDefaultWalletDirectory(),
+		directory: directory,
 	}
 }
 

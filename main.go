@@ -26,7 +26,7 @@ func main() {
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
-	walletManager := wallet.NewDefaultWalletManager()
+	walletManager := wallet.NewDefaultWalletManager(wallet.GetDefaultWalletDirectory())
 	if err := walletManager.(*wallet.DefaultWalletManager).Load(); err != nil {
 		fmt.Println("Error when loading wallets:", err)
 	}
