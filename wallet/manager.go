@@ -6,10 +6,8 @@ import "os"
 import "path/filepath"
 import "sort"
 import "sync"
-import "unicode/utf8"
 
 import "lbry/daemon/auth"
-import "lbry/daemon/crypt"
 
 type WalletFile struct {
 	Name     string    `json:"name"`
@@ -105,10 +103,26 @@ func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool
 	if wallet == nil || wallet.password == "" {
 		return false
 	}
-	for i := range wallet.Accounts {
-		wallet.Accounts[i].decryptedSeed = ""
-		wallet.Accounts[i].decryptedPrivateKey = ""
+
+	type pendingEncryption struct {
+		index   int
+		account Account
 	}
+	pending := make([]pendingEncryption, 0, len(wallet.Accounts))
+	for i := range wallet.Accounts {
+		if wallet.Accounts[i].Encrypted {
+			continue
+		}
+		account := wallet.Accounts[i]
+		if err := account.Encrypt(wallet.password); err != nil {
+			return false
+		}
+		pending = append(pending, pendingEncryption{index: i, account: account})
+	}
+	for _, item := range pending {
+		wallet.Accounts[item.index] = item.account
+	}
+
 	wallet.locked = true
 	wallet.password = ""
 	return true
@@ -121,32 +135,28 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 	if wallet == nil {
 		return false
 	}
-	type result struct{ seed, privateKey string }
-	results := map[int]result{}
-	for i, account := range wallet.Accounts {
-		if !account.Encrypted {
+
+	// Decrypt copies first so a wrong password leaves every account untouched.
+	type pendingDecryption struct {
+		index   int
+		account Account
+	}
+	pending := make([]pendingDecryption, 0, len(wallet.Accounts))
+	for i := range wallet.Accounts {
+		if !wallet.Accounts[i].Encrypted {
 			continue
 		}
-		var plain [2]string
-		for j, value := range []string{account.Seed, account.PrivateKey} {
-			if value == "" {
-				continue
-			}
-			decrypted, err := crypt.Decrypt(password, value)
-			if err != nil || decrypted == "" || !utf8.ValidString(decrypted) {
-				return false
-			}
-			plain[j] = decrypted
+		account := wallet.Accounts[i]
+		if err := account.Decrypt(password); err != nil {
+			return false
 		}
-		results[i] = result{plain[0], plain[1]}
+		pending = append(pending, pendingDecryption{index: i, account: account})
 	}
-	for i, r := range results {
-		wallet.Accounts[i].decryptedSeed = r.seed
-		wallet.Accounts[i].decryptedPrivateKey = r.privateKey
+	for _, item := range pending {
+		wallet.Accounts[item.index] = item.account
 	}
-	if len(results) > 0 {
-		wallet.password = password
-	}
+
+	wallet.password = password
 	wallet.locked = false
 	return true
 }
