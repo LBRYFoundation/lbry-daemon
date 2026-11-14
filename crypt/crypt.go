@@ -1,13 +1,11 @@
 // Package crypt ports lbry-sdk's lbry/crypto/crypt.py.
 package crypt
 
-import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/sha256"
-	"encoding/base64"
-	"errors"
-)
+import "crypto/aes"
+import "crypto/cipher"
+import "crypto/sha256"
+import "encoding/base64"
+import "errors"
 
 // ErrInvalidPassword is returned when a value cannot be decrypted with the given password.
 var ErrInvalidPassword = errors.New("invalid password")

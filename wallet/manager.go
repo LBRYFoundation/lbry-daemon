@@ -40,7 +40,7 @@ var _ WalletManager = (*DefaultWalletManager)(nil)
 
 func NewDefaultWalletManager() WalletManager {
 	return &DefaultWalletManager{
-		directory: DefaultDirectory(),
+		directory: GetDefaultWalletDirectory(),
 	}
 }
 

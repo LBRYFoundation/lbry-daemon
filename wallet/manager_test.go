@@ -1,13 +1,11 @@
 package wallet
 
-import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"testing"
+import "encoding/json"
+import "os"
+import "path/filepath"
+import "testing"
 
-	"lbry/daemon/crypt"
-)
+import "lbry/daemon/crypt"
 
 var testIV = []byte("0123456789abcdef")
 
