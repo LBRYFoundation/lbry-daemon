@@ -11,13 +11,13 @@ type PeerServer struct {
 	blobManager *blob.BlobManager
 }
 
-func CreateServer(blobManager *blob.BlobManager) *PeerServer {
+func NewPeerServer(blobManager *blob.BlobManager) *PeerServer {
 	return &PeerServer{
 		blobManager: blobManager,
 	}
 }
 
-func (peerServer PeerServer) StartServer(listener net.Listener) {
+func (peerServer PeerServer) Start(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

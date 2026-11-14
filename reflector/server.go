@@ -11,13 +11,13 @@ type ReflectorServer struct {
 	blobManager *blob.BlobManager
 }
 
-func CreateServer(blobManager *blob.BlobManager) *ReflectorServer {
+func NewReflectorServer(blobManager *blob.BlobManager) *ReflectorServer {
 	return &ReflectorServer{
 		blobManager: blobManager,
 	}
 }
 
-func (reflectorServer ReflectorServer) StartServer(listener net.Listener) {
+func (reflectorServer ReflectorServer) Start(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

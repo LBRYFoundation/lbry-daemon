@@ -28,10 +28,10 @@ func main() {
 	}
 	walletManager := &wallet.WalletManager{}
 
-	rpcServer := rpc.CreateServer(config, authManager, blobManager, node, walletManager)
-	contentServer := stream.CreateServer(blobManager)
-	reflectorServer := reflector.CreateServer(blobManager)
-	peerServer := peer.CreateServer(blobManager)
+	rpcServer := rpc.NewRPCServer(config, authManager, blobManager, node, walletManager)
+	contentServer := stream.NewContentServer(blobManager)
+	reflectorServer := reflector.NewReflectorServer(blobManager)
+	peerServer := peer.NewPeerServer(blobManager)
 
 	runningServers := 0
 
@@ -53,7 +53,7 @@ func main() {
 				return
 			}
 			defer listener.Close()
-			rpcServer.StartServer(listener)
+			rpcServer.Start(listener)
 		})
 		runningServers++
 	}
@@ -67,7 +67,7 @@ func main() {
 				return
 			}
 			defer listener.Close()
-			contentServer.StartServer(listener)
+			contentServer.Start(listener)
 		})
 		runningServers++
 	}
@@ -81,7 +81,7 @@ func main() {
 				return
 			}
 			defer listener.Close()
-			reflectorServer.StartServer(listener)
+			reflectorServer.Start(listener)
 		})
 		runningServers++
 	}
@@ -95,7 +95,7 @@ func main() {
 				return
 			}
 			defer listener.Close()
-			peerServer.StartServer(listener)
+			peerServer.Start(listener)
 		})
 		runningServers++
 	}

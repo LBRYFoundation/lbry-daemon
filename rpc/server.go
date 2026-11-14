@@ -36,7 +36,7 @@ type RPCServer struct {
 	walletManager *wallet.WalletManager
 }
 
-func CreateServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
+func NewRPCServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{
@@ -53,7 +53,7 @@ func CreateServer(configuration settings.Configuration, authManager *auth.AuthMa
 	return server
 }
 
-func (rpcServer RPCServer) StartServer(listener net.Listener) {
+func (rpcServer RPCServer) Start(listener net.Listener) {
 	err := rpcServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting RPC server.")

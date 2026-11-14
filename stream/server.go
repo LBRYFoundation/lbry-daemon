@@ -14,7 +14,7 @@ type StreamServer struct {
 	httpServer  http.Server
 }
 
-func CreateServer(blobManager *blob.BlobManager) *StreamServer {
+func NewContentServer(blobManager *blob.BlobManager) *StreamServer {
 	contentServeMux := http.NewServeMux()
 
 	server := &StreamServer{
@@ -27,7 +27,7 @@ func CreateServer(blobManager *blob.BlobManager) *StreamServer {
 	return server
 }
 
-func (contentServer StreamServer) StartServer(listener net.Listener) {
+func (contentServer StreamServer) Start(listener net.Listener) {
 	err := contentServer.httpServer.Serve(listener)
 	if err != nil && err != http.ErrServerClosed {
 		fmt.Println("Error when starting Stream server.")
