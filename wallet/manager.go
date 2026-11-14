@@ -13,7 +13,8 @@ import (
 	"lbry/daemon/crypt"
 )
 
-type account struct {
+// Account is one account of a wallet file.
+type Account struct {
 	Name       string `json:"name"`
 	Encrypted  bool   `json:"encrypted"`
 	Seed       string `json:"seed"`
@@ -26,9 +27,10 @@ type account struct {
 	decryptedPrivateKey string
 }
 
-type walletFile struct {
+// WalletFile is the JSON layout of a wallet file.
+type WalletFile struct {
 	Name     string    `json:"name"`
-	Accounts []account `json:"accounts"`
+	Accounts []Account `json:"accounts"`
 }
 
 // Wallet is a snapshot of a wallet. Values returned by List and Get carry the
@@ -38,7 +40,7 @@ type Wallet struct {
 	Name string
 
 	locked   bool
-	accounts []account
+	accounts []Account
 	password string // set while unlocked with a password, enables Lock
 }
 
@@ -49,30 +51,36 @@ func (wallet *Wallet) IsLocked() bool {
 }
 
 type WalletManager struct {
-	mutex   sync.Mutex
-	wallets []*Wallet
+	mutex     sync.Mutex
+	directory string
+	wallets   []*Wallet
 }
 
-// NewManager loads every wallet file found in directory. A missing directory
-// yields an empty manager; unreadable or malformed files are skipped.
-func NewManager(directory string) (*WalletManager, error) {
-	manager := &WalletManager{}
-	entries, err := os.ReadDir(directory)
+// NewManager returns a manager for the wallet files in directory. It never fails and reads nothing: call Load.
+func NewManager(directory string) *WalletManager {
+	return &WalletManager{directory: directory}
+}
+
+// Load reads every wallet file in the directory, replacing what was loaded before. A missing directory is not
+// an error (there are no wallets yet); unreadable or malformed files are skipped.
+func (walletManager *WalletManager) Load() error {
+	entries, err := os.ReadDir(walletManager.directory)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return manager, nil
+			return nil
 		}
-		return manager, err
+		return err
 	}
+	var wallets []*Wallet
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(directory, entry.Name()))
+		data, err := os.ReadFile(filepath.Join(walletManager.directory, entry.Name()))
 		if err != nil {
 			continue
 		}
-		var parsed walletFile
+		var parsed WalletFile
 		if json.Unmarshal(data, &parsed) != nil {
 			continue
 		}
@@ -86,10 +94,13 @@ func NewManager(directory string) (*WalletManager, error) {
 				locked = true
 			}
 		}
-		manager.wallets = append(manager.wallets, &Wallet{ID: entry.Name(), Name: name, accounts: parsed.Accounts, locked: locked})
+		wallets = append(wallets, &Wallet{ID: entry.Name(), Name: name, accounts: parsed.Accounts, locked: locked})
 	}
-	sort.Slice(manager.wallets, func(i, j int) bool { return manager.wallets[i].ID < manager.wallets[j].ID })
-	return manager, nil
+	sort.Slice(wallets, func(i, j int) bool { return wallets[i].ID < wallets[j].ID })
+	walletManager.mutex.Lock()
+	walletManager.wallets = wallets
+	walletManager.mutex.Unlock()
+	return nil
 }
 
 func (wallet *Wallet) snapshot() Wallet {

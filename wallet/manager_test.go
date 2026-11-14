@@ -11,7 +11,7 @@ import (
 
 var testIV = []byte("0123456789abcdef")
 
-func writeWallet(t *testing.T, dir, file string, data walletFile) {
+func writeWallet(t *testing.T, dir, file string, data WalletFile) {
 	t.Helper()
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -24,15 +24,15 @@ func writeWallet(t *testing.T, dir, file string, data walletFile) {
 
 func fixture(t *testing.T) *WalletManager {
 	dir := t.TempDir()
-	writeWallet(t, dir, "default_wallet", walletFile{Name: "My Wallet", Accounts: []account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
-	writeWallet(t, dir, "secret", walletFile{Name: "Secret", Accounts: []account{{
+	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
+	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []Account{{
 		Name: "enc", Encrypted: true,
 		Seed:       crypt.Encrypt("hunter2", "seed words", testIV),
 		PrivateKey: crypt.Encrypt("hunter2", "xprv-secret", testIV),
 	}}})
 	os.WriteFile(filepath.Join(dir, "junk"), []byte("not json"), 0o600)
-	manager, err := NewManager(dir)
-	if err != nil {
+	manager := NewManager(dir)
+	if err := manager.Load(); err != nil {
 		t.Fatal(err)
 	}
 	return manager
@@ -50,8 +50,8 @@ func TestListAndGet(t *testing.T) {
 }
 
 func TestMissingDirectory(t *testing.T) {
-	manager, err := NewManager(filepath.Join(t.TempDir(), "nope"))
-	if err != nil || len(manager.List(nil)) != 0 {
+	manager := NewManager(filepath.Join(t.TempDir(), "nope"))
+	if err := manager.Load(); err != nil || len(manager.List(nil)) != 0 {
 		t.Fatalf("expected empty manager, got %v %v", manager, err)
 	}
 }
@@ -113,11 +113,12 @@ func TestUnlockRetainsDecryptedMaterialUntilLock(t *testing.T) {
 
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "two", walletFile{Name: "Two", Accounts: []account{
+	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []Account{
 		{Encrypted: true, Seed: crypt.Encrypt("pw", "seed one", testIV), PrivateKey: crypt.Encrypt("pw", "key one", testIV)},
 		{Encrypted: true, Seed: crypt.Encrypt("other", "seed two", testIV), PrivateKey: crypt.Encrypt("other", "key two", testIV)},
 	}})
-	manager, _ := NewManager(dir)
+	manager := NewManager(dir)
+	manager.Load()
 	if manager.Unlock(nil, "two", "pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
@@ -169,5 +170,17 @@ func TestDefaultDirectory(t *testing.T) {
 		if got := defaultDirectory(tc.goos, home, env(tc.env), dirs(tc.existing...)); got != tc.want {
 			t.Errorf("%s: got %s, want %s", tc.name, got, tc.want)
 		}
+	}
+}
+
+func TestNewManagerReadsNothingUntilLoad(t *testing.T) {
+	dir := t.TempDir()
+	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet"})
+	manager := NewManager(dir)
+	if len(manager.List(nil)) != 0 {
+		t.Fatal("NewManager must not read the directory")
+	}
+	if err := manager.Load(); err != nil || len(manager.List(nil)) != 1 {
+		t.Fatalf("Load did not pick up the wallet: %v", err)
 	}
 }

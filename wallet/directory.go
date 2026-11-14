@@ -8,11 +8,7 @@ import (
 
 // DefaultDirectory returns the directory holding the wallet files, following
 // lbry-sdk's lbry/conf.py (get_*_directories): <lbryum dir>/wallets.
-// LBRY_WALLET_DIR overrides the whole result.
 func DefaultDirectory() string {
-	if dir := os.Getenv("LBRY_WALLET_DIR"); dir != "" {
-		return dir
-	}
 	return defaultDirectory(runtime.GOOS, os.UserHomeDir, os.Getenv, isDirectory)
 }
 
