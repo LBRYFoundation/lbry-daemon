@@ -80,9 +80,8 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 func (rpcServer *RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
-	// CORS is open, as in lbry-sdk. What keeps other web pages out is the request itself: only a trusted
-	// local client (see isTrustedLocal) or one with the admin credentials gets past authentication, and a
-	// page cannot remove its own Origin header.
+	// CORS is open, as in lbry-sdk. Every client, local or remote, has to authenticate: the protection is
+	// the credentials on the request, not where it came from.
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -92,10 +91,6 @@ func (rpcServer *RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Reque
 	if strings.EqualFold(req.Method, "OPTIONS") {
 		w.WriteHeader(http.StatusNoContent)
 		return
-	}
-
-	if isTrustedLocal(req) {
-		req = auth.TrustLocal(req)
 	}
 
 	if strings.EqualFold(req.Method, "POST") {

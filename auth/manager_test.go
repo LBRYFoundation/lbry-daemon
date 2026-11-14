@@ -70,29 +70,3 @@ func TestAdminIsAlsoAUser(t *testing.T) {
 		t.Fatal("a valid admin must be a valid user")
 	}
 }
-
-func TestTrustedLocalMarkIsAdmin(t *testing.T) {
-	t.Setenv("ADMIN_USERNAME", "")
-	t.Setenv("ADMIN_PASSWORD", "")
-	manager := &AuthManager{}
-	marked := TrustLocal(request())
-	if _, ok := manager.ValidateAdminUser(marked); !ok {
-		t.Fatal("a request marked as trusted local should be admin")
-	}
-	if _, ok := manager.ValidateUser(marked); !ok {
-		t.Fatal("a request marked as trusted local should be a user")
-	}
-	if _, ok := manager.ValidateAdminUser(request()); ok {
-		t.Fatal("marking one request must not affect another")
-	}
-}
-
-func TestWrongCredentialsDoNotBeatTheMark(t *testing.T) {
-	// The credentials are checked whatever else is true; a marked request is still admin on its own.
-	withAdmin(t)
-	req := TrustLocal(request())
-	req.SetBasicAuth("admin", "wrong")
-	if _, ok := (&AuthManager{}).ValidateAdminUser(req); !ok {
-		t.Fatal("the trusted-local mark is independent of the credentials")
-	}
-}

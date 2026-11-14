@@ -15,16 +15,15 @@ import (
 func newTestHandler(t *testing.T) http.Handler {
 	t.Setenv("ADMIN_USERNAME", "")
 	t.Setenv("ADMIN_PASSWORD", "")
-	t.Setenv("LBRY_ALLOWED_ORIGIN", "")
-	server := CreateServer(settings.InitializeConfiguration(), &auth.AuthManager{}, &blob.BlobManager{}, nil, &wallet.WalletManager{})
+	server := NewRPCServer(settings.InitializeConfiguration(), &auth.AuthManager{}, &blob.BlobManager{}, nil, wallet.NewDefaultWalletManager(t.TempDir()))
 	return server.httpServer.Handler
 }
 
 // wallet_balance needs an authenticated user: an allowed request reaches the handler (501, not implemented),
-// a refused one is answered 401.
+// a Refused one is answered 401.
 const (
-	reached = "not implemented"
-	refused = "Not permitted"
+	Reached = "not implemented"
+	Refused = "Not permitted"
 )
 
 type opts struct {
@@ -58,22 +57,35 @@ func do(handler http.Handler, o opts) *httptest.ResponseRecorder {
 	return rec
 }
 
-func TestLocalClientNeedsNoCredentials(t *testing.T) {
+func TestEveryClientNeedsCredentials(t *testing.T) {
 	handler := newTestHandler(t)
-	if rec := do(handler, opts{}); !strings.Contains(rec.Body.String(), reached) {
-		t.Errorf("a loopback client should be let in, got %s", rec.Body.String())
+	t.Setenv("ADMIN_USERNAME", "admin")
+	t.Setenv("ADMIN_PASSWORD", "s3cret")
+	for name, o := range map[string]opts{
+		"loopback client":   {},
+		"remote address":    {remote: "203.0.113.9:4000"},
+		"foreign host":      {host: "evil.example:5279"},
+		"foreign origin":    {origin: "https://evil.example"},
+		"wrong credentials": {user: "admin", pass: "wrong"},
+	} {
+		if rec := do(handler, o); !strings.Contains(rec.Body.String(), Refused) {
+			t.Errorf("%s should be refused, got %s", name, rec.Body.String())
+		}
 	}
 }
 
-func TestRequestsThatAreNotTrustedLocalAreRefused(t *testing.T) {
+func TestAdminCredentialsWorkFromAnywhere(t *testing.T) {
 	handler := newTestHandler(t)
+	t.Setenv("ADMIN_USERNAME", "admin")
+	t.Setenv("ADMIN_PASSWORD", "s3cret")
 	for name, o := range map[string]opts{
-		"remote address": {remote: "203.0.113.9:4000"},
-		"foreign host":   {host: "evil.example:5279"},
-		"foreign origin": {origin: "https://evil.example"},
+		"loopback client": {},
+		"remote address":  {remote: "203.0.113.9:4000", host: "daemon.example:5279"},
+		"web origin":      {origin: "https://app.example"},
 	} {
-		if rec := do(handler, o); !strings.Contains(rec.Body.String(), refused) {
-			t.Errorf("%s should be refused, got %s", name, rec.Body.String())
+		o.user, o.pass = "admin", "s3cret"
+		if rec := do(handler, o); !strings.Contains(rec.Body.String(), Reached) {
+			t.Errorf("%s with the admin credentials should be let in, got %s", name, rec.Body.String())
 		}
 	}
 }
@@ -83,6 +95,8 @@ func TestRequestsThatAreNotTrustedLocalAreRefused(t *testing.T) {
 // let the app read the answer.
 func TestDesktopPreflightAndPost(t *testing.T) {
 	handler := newTestHandler(t)
+	t.Setenv("ADMIN_USERNAME", "admin")
+	t.Setenv("ADMIN_PASSWORD", "s3cret")
 
 	pre := do(handler, opts{method: "OPTIONS", origin: "file://"})
 	if pre.Code != http.StatusNoContent {
@@ -97,9 +111,9 @@ func TestDesktopPreflightAndPost(t *testing.T) {
 		}
 	}
 
-	post := do(handler, opts{}) // no Origin: Electron removed it
-	if !strings.Contains(post.Body.String(), reached) {
-		t.Errorf("the desktop's POST should be let in, got %s", post.Body.String())
+	post := do(handler, opts{user: "admin", pass: "s3cret"}) // no Origin: Electron removed it
+	if !strings.Contains(post.Body.String(), Reached) {
+		t.Errorf("the desktop's authenticated POST should be let in, got %s", post.Body.String())
 	}
 	if got := post.Header().Get("Access-Control-Allow-Origin"); got != "*" {
 		t.Errorf("the POST response needs Access-Control-Allow-Origin, got %q", got)
@@ -111,41 +125,5 @@ func TestPreflightIsAnsweredWhateverTheOrigin(t *testing.T) {
 	rec := do(handler, opts{method: "OPTIONS", origin: "https://evil.example", remote: "203.0.113.9:4000"})
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("status %d", rec.Code)
-	}
-}
-
-func TestAllowedOriginWithoutCredentials(t *testing.T) {
-	handler := newTestHandler(t)
-	t.Setenv("LBRY_ALLOWED_ORIGIN", "https://app.example")
-	if rec := do(handler, opts{origin: "https://app.example"}); !strings.Contains(rec.Body.String(), reached) {
-		t.Errorf("the allowed origin should be let in, got %s", rec.Body.String())
-	}
-	if rec := do(handler, opts{origin: "https://other.example"}); !strings.Contains(rec.Body.String(), refused) {
-		t.Errorf("another origin should be refused, got %s", rec.Body.String())
-	}
-}
-
-func TestBasicAuthFromAnAllowedOrigin(t *testing.T) {
-	handler := newTestHandler(t)
-	t.Setenv("LBRY_ALLOWED_ORIGIN", "https://app.example")
-	t.Setenv("ADMIN_USERNAME", "admin")
-	t.Setenv("ADMIN_PASSWORD", "s3cret")
-
-	remote := opts{origin: "https://app.example", remote: "203.0.113.9:4000", host: "daemon.example:5279"}
-	remote.user, remote.pass = "admin", "s3cret"
-	if rec := do(handler, remote); !strings.Contains(rec.Body.String(), reached) {
-		t.Errorf("the admin credentials should work from anywhere, got %s", rec.Body.String())
-	}
-	remote.pass = "wrong"
-	if rec := do(handler, remote); !strings.Contains(rec.Body.String(), refused) {
-		t.Errorf("wrong credentials should be refused, got %s", rec.Body.String())
-	}
-}
-
-func TestWildcardAllowedOrigin(t *testing.T) {
-	handler := newTestHandler(t)
-	t.Setenv("LBRY_ALLOWED_ORIGIN", "*")
-	if rec := do(handler, opts{origin: "https://anything.example"}); !strings.Contains(rec.Body.String(), reached) {
-		t.Errorf("a wildcard allowed origin should let any origin in, got %s", rec.Body.String())
 	}
 }

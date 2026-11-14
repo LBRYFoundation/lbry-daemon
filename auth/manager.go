@@ -1,6 +1,5 @@
 package auth
 
-import "context"
 import "crypto/subtle"
 import "net/http"
 
@@ -11,19 +10,6 @@ type AuthManager struct {
 }
 
 type User struct {
-}
-
-type trustedLocalKey struct{}
-
-// TrustLocal marks a request as coming from a trusted local client. The RPC layer calls it after checking
-// where the request came from; the auth manager only reads the mark.
-func TrustLocal(req *http.Request) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), trustedLocalKey{}, true))
-}
-
-func isTrustedLocal(req *http.Request) bool {
-	trusted, _ := req.Context().Value(trustedLocalKey{}).(bool)
-	return trusted
 }
 
 func (authManager *AuthManager) WantsRPCAuthentication() bool {
@@ -51,14 +37,10 @@ func (authManager *AuthManager) ValidateUser(req *http.Request) (*User, bool) {
 	return authManager.ValidateAdminUser(req)
 }
 
-// ValidateAdminUser accepts HTTP basic authentication with the admin credentials, from any address, and a
-// request the RPC layer has marked as a trusted local client (see TrustLocal).
+// ValidateAdminUser accepts HTTP basic authentication with the admin credentials, from any address.
 func (authManager *AuthManager) ValidateAdminUser(req *http.Request) (*User, bool) {
 	username, password, hasBasic := req.BasicAuth()
 	if hasBasic && authManager.IsAdminUser(username, password) {
-		return &User{}, true
-	}
-	if isTrustedLocal(req) {
 		return &User{}, true
 	}
 	return nil, false
