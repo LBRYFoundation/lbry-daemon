@@ -13,4 +13,8 @@ type WalletManager interface {
 type Wallet struct {
 	ID   string
 	Name string
+
+	locked   bool
+	accounts []Account
+	password string // set while unlocked with a password, enables Lock
 }

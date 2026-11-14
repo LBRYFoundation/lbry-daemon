@@ -27,6 +27,9 @@ func main() {
 		Blobs: map[string][]byte{},
 	}
 	walletManager := wallet.NewDefaultWalletManager()
+	if err := walletManager.(*wallet.DefaultWalletManager).Load(); err != nil {
+		fmt.Println("Error when loading wallets:", err)
+	}
 
 	rpcServer := rpc.NewRPCServer(config, authManager, blobManager, node, walletManager)
 	contentServer := stream.NewContentServer(blobManager)

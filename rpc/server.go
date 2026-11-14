@@ -1662,20 +1662,46 @@ func handleJSONRPCMessageWalletImport(rpcServer *RPCServer, w http.ResponseWrite
 func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+
 		wallets := rpcServer.walletManager.List(user)
 
-		walletMaps := []any{}
+		singleWallet := false
+		if walletID, hasWalletID := paramsMap["wallet_id"]; hasWalletID {
+			singleWallet = true
+			walletIDString, walletIDIsString := walletID.(string)
+			if !walletIDIsString {
+				sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+				return
+			}
+			found := rpcServer.walletManager.Get(user, walletIDString)
+			if found == nil {
+				sendErrorResponse(w, 400, "Wallet does not exist.")
+				return
+			}
+			wallets = []wallet.Wallet{*found}
+		}
 
-		for _, wallet := range wallets {
+		walletMaps := []any{}
+		for _, item := range wallets {
 			walletMaps = append(walletMaps, map[string]any{
-				"id":   wallet.ID,
-				"name": wallet.Name,
+				"id":   item.ID,
+				"name": item.Name,
 			})
 		}
 
-		paginator := NewPaginator(walletMaps, 0, 0, 0, 0)
+		if singleWallet {
+			// lbry-sdk: paginate_list([wallet], 1, 1), whatever page arguments were given.
+			sendResultResponse(w, Paginate(walletMaps, 1, 1).ToMap())
+			return
+		}
 
-		sendResultResponse(w, paginator.ToMap())
+		page, _ := paramsMap["page"].(float64)
+		pageSize, _ := paramsMap["page_size"].(float64)
+		sendResultResponse(w, Paginate(walletMaps, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
 		return
 	}
 	handleUnauthorized(w)
