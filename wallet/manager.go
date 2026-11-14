@@ -4,6 +4,7 @@ import "encoding/json"
 import "errors"
 import "os"
 import "path/filepath"
+import "slices"
 import "sort"
 import "sync"
 
@@ -69,7 +70,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 }
 
 func (wallet *Wallet) snapshot() Wallet {
-	return Wallet{ID: wallet.ID, Name: wallet.Name, locked: wallet.locked}
+	return Wallet{ID: wallet.ID, Name: wallet.Name, Accounts: slices.Clone(wallet.Accounts), locked: wallet.locked}
 }
 
 func (walletManager *DefaultWalletManager) List(user *auth.User) []Wallet {
