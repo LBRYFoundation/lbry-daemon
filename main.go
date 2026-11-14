@@ -26,7 +26,7 @@ func main() {
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
-	walletManager := &wallet.WalletManager{}
+	walletManager := wallet.NewDefaultWalletManager()
 
 	rpcServer := rpc.NewRPCServer(config, authManager, blobManager, node, walletManager)
 	contentServer := stream.NewContentServer(blobManager)

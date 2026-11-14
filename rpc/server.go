@@ -33,10 +33,10 @@ type RPCServer struct {
 	configuration settings.Configuration
 	dhtNode       *dht.Node
 	httpServer    http.Server
-	walletManager *wallet.WalletManager
+	walletManager wallet.WalletManager
 }
 
-func NewRPCServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager *wallet.WalletManager) *RPCServer {
+func NewRPCServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager wallet.WalletManager) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{

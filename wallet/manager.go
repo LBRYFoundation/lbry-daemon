@@ -2,7 +2,7 @@ package wallet
 
 import "lbry/daemon/auth"
 
-type WalletManager struct {
+type DefaultWalletManager struct {
 	wallets []Wallet
 }
 
@@ -11,12 +11,16 @@ type Wallet struct {
 	Name string
 }
 
-func (walletManager *WalletManager) List(user *auth.User) []Wallet {
+func NewDefaultWalletManager() WalletManager {
+	return &DefaultWalletManager{}
+}
+
+func (walletManager *DefaultWalletManager) List(user *auth.User) []Wallet {
 	// TODO: Implement
 	return []Wallet{}
 }
 
-func (walletManager *WalletManager) Get(user *auth.User, id string) *Wallet {
+func (walletManager *DefaultWalletManager) Get(user *auth.User, id string) *Wallet {
 	for _, wallet := range walletManager.wallets {
 		if wallet.ID == id {
 			return &wallet
@@ -25,16 +29,16 @@ func (walletManager *WalletManager) Get(user *auth.User, id string) *Wallet {
 	return nil
 }
 
-func (walletManager *WalletManager) Remove(user *auth.User, id string) {
+func (walletManager *DefaultWalletManager) Remove(user *auth.User, id string) {
 	// TODO: Implement
 }
 
-func (walletManager *WalletManager) Lock(user *auth.User, id string) bool {
+func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool {
 	// TODO: Implement
 	return false
 }
 
-func (walletManager *WalletManager) Unlock(user *auth.User, id string, password string) bool {
+func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, password string) bool {
 	// TODO: Implement
 	return false
 }
