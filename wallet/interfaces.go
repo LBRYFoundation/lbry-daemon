@@ -1,6 +1,8 @@
 package wallet
 
+import "errors"
 import "lbry/daemon/auth"
+import "lbry/daemon/crypt"
 
 type WalletManager interface {
 	List(user *auth.User) []Wallet
@@ -11,12 +13,31 @@ type WalletManager interface {
 }
 
 type Wallet struct {
-	ID   string
-	Name string
+	ID          string
+	Name        string
+	Accounts    []Account
+	Preferences map[string]Preference
 
 	locked   bool
-	accounts []Account
 	password string // set while unlocked with a password, enables Lock
+}
+
+type Account struct {
+	Name       string `json:"name"`
+	Encrypted  bool   `json:"encrypted"`
+	Seed       string `json:"seed"`
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
+
+	// Filled by Unlock, cleared by Lock. Mirrors lbry-sdk's Account.decrypt,
+	// which keeps the plain seed and private key on the account.
+	decryptedSeed       string
+	decryptedPrivateKey string
+}
+
+type Preference struct {
+	TimeStamp int64
+	Value     any
 }
 
 func (wallet *Wallet) IsEncrypted() bool {
@@ -29,4 +50,49 @@ func (wallet *Wallet) IsLocked() bool {
 
 func (wallet *Wallet) IsSyncing() bool {
 	return false
+}
+
+func (account *Account) Encrypt(password string) error {
+	if account.Encrypted {
+		return errors.New("Account is already encrypted.")
+	}
+	var encryptedSeed string
+	var encryptedPrivateKey string
+
+	if account.Seed != "" {
+		// TODO Cache Initialization Vector
+		iv, _ := crypt.NewIV()
+		encryptedSeed = crypt.Encrypt(password, account.Seed, iv[:])
+	}
+	if account.PrivateKey != "" {
+		// TODO Cache Initialization Vector
+		iv, _ := crypt.NewIV()
+		encryptedPrivateKey = crypt.Encrypt(password, account.PrivateKey, iv[:])
+	}
+
+	account.Seed = encryptedSeed
+	account.PrivateKey = encryptedPrivateKey
+	account.Encrypted = true
+	return nil
+}
+
+func (account *Account) Decrypt(password string) error {
+	if !account.Encrypted {
+		return errors.New("Account is not encrypted.")
+	}
+	var decryptedSeed string
+	var decryptedPrivateKey string
+
+	if account.Seed != "" {
+		decryptedSeed, _ = crypt.Decrypt(password, account.Seed)
+	}
+
+	if account.PrivateKey != "" {
+		decryptedPrivateKey, _ = crypt.Decrypt(password, account.PrivateKey)
+	}
+
+	account.Seed = decryptedSeed
+	account.PrivateKey = decryptedPrivateKey
+	account.Encrypted = false
+	return nil
 }

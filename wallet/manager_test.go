@@ -87,7 +87,7 @@ func TestLockStateThroughPublicAPI(t *testing.T) {
 
 func TestUnlockRetainsDecryptedMaterialUntilLock(t *testing.T) {
 	manager := fixture(t)
-	account := &manager.(*DefaultWalletManager).find("secret").accounts[0]
+	account := &manager.(*DefaultWalletManager).find("secret").Accounts[0]
 
 	if manager.Unlock(nil, "secret", "wrong"); account.decryptedSeed != "" || account.decryptedPrivateKey != "" {
 		t.Fatal("a failed unlock must not retain anything")
@@ -120,7 +120,7 @@ func TestUnlockIsAllOrNothing(t *testing.T) {
 	if manager.Unlock(nil, "two", "pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
-	if got := manager.(*DefaultWalletManager).find("two").accounts[0].decryptedSeed; got != "" {
+	if got := manager.(*DefaultWalletManager).find("two").Accounts[0].decryptedSeed; got != "" {
 		t.Fatalf("first account was left decrypted: %q", got)
 	}
 }

@@ -11,20 +11,6 @@ import "unicode/utf8"
 import "lbry/daemon/auth"
 import "lbry/daemon/crypt"
 
-// Account is one account of a wallet file.
-type Account struct {
-	Name       string `json:"name"`
-	Encrypted  bool   `json:"encrypted"`
-	Seed       string `json:"seed"`
-	PrivateKey string `json:"private_key"`
-	PublicKey  string `json:"public_key"`
-
-	// Filled by Unlock, cleared by Lock. Mirrors lbry-sdk's Account.decrypt,
-	// which keeps the plain seed and private key on the account.
-	decryptedSeed       string
-	decryptedPrivateKey string
-}
-
 type WalletFile struct {
 	Name     string    `json:"name"`
 	Accounts []Account `json:"accounts"`
@@ -75,7 +61,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 				locked = true
 			}
 		}
-		wallets = append(wallets, &Wallet{ID: entry.Name(), Name: name, accounts: parsed.Accounts, locked: locked})
+		wallets = append(wallets, &Wallet{ID: entry.Name(), Name: name, Accounts: parsed.Accounts, locked: locked})
 	}
 	sort.Slice(wallets, func(i, j int) bool { return wallets[i].ID < wallets[j].ID })
 	walletManager.mutex.Lock()
@@ -119,9 +105,9 @@ func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool
 	if wallet == nil || wallet.password == "" {
 		return false
 	}
-	for i := range wallet.accounts {
-		wallet.accounts[i].decryptedSeed = ""
-		wallet.accounts[i].decryptedPrivateKey = ""
+	for i := range wallet.Accounts {
+		wallet.Accounts[i].decryptedSeed = ""
+		wallet.Accounts[i].decryptedPrivateKey = ""
 	}
 	wallet.locked = true
 	wallet.password = ""
@@ -137,7 +123,7 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 	}
 	type result struct{ seed, privateKey string }
 	results := map[int]result{}
-	for i, account := range wallet.accounts {
+	for i, account := range wallet.Accounts {
 		if !account.Encrypted {
 			continue
 		}
@@ -155,8 +141,8 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 		results[i] = result{plain[0], plain[1]}
 	}
 	for i, r := range results {
-		wallet.accounts[i].decryptedSeed = r.seed
-		wallet.accounts[i].decryptedPrivateKey = r.privateKey
+		wallet.Accounts[i].decryptedSeed = r.seed
+		wallet.Accounts[i].decryptedPrivateKey = r.privateKey
 	}
 	if len(results) > 0 {
 		wallet.password = password

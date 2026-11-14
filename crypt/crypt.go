@@ -3,6 +3,7 @@ package crypt
 
 import "crypto/aes"
 import "crypto/cipher"
+import "crypto/rand"
 import "crypto/sha256"
 import "encoding/base64"
 import "errors"
@@ -52,4 +53,12 @@ func Encrypt(password string, value string, iv []byte) string {
 	out := make([]byte, len(padded))
 	cipher.NewCBCEncrypter(block, iv).CryptBlocks(out, padded)
 	return base64.StdEncoding.EncodeToString(append(append([]byte{}, iv...), out...))
+}
+
+func NewIV() ([16]byte, error) {
+	var iv [16]byte
+	if _, err := rand.Read(iv[:]); err != nil {
+		return iv, err
+	}
+	return iv, nil
 }
