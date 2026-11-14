@@ -18,7 +18,7 @@ const (
 	kindChoice
 )
 
-type definition struct {
+type Definition struct {
 	name    string
 	kind    kind
 	def     any      // default; nil for paths, which depend on the platform (see paths.go)
@@ -35,14 +35,14 @@ var coinSelectionStrategies = []string{
 }
 
 // server is a host and port, written "host:port" in the settings file and settings_set values.
-type server struct {
+type Server struct {
 	host string
 	port int
 }
 
-func servers(list ...server) []server { return list }
+func servers(list ...Server) []Server { return list }
 
-var definitions = []definition{
+var definitions = []Definition{
 	{name: "jurisdiction", kind: kindString, def: ""},
 
 	// directories
@@ -87,39 +87,39 @@ var definitions = []definition{
 	{name: "concurrent_reflector_uploads", kind: kindInt, def: 10},
 
 	// servers
-	{name: "reflector_servers", kind: kindServers, def: servers(server{"reflector.lbry.com", 5566})},
-	{name: "fixed_peers", kind: kindServers, def: servers(server{"cdn.reflector.lbry.com", 5567})},
+	{name: "reflector_servers", kind: kindServers, def: servers(Server{"reflector.lbry.com", 5566})},
+	{name: "fixed_peers", kind: kindServers, def: servers(Server{"cdn.reflector.lbry.com", 5567})},
 	{name: "tracker_servers", kind: kindServers, def: servers(
-		server{"tracker.lbry.com", 9252},
-		server{"tracker.lbry.grin.io", 9252},
-		server{"tracker.lbry.pigg.es", 9252},
-		server{"tracker.lizard.technology", 9252},
-		server{"s1.lbry.network", 9252},
+		Server{"tracker.lbry.com", 9252},
+		Server{"tracker.lbry.grin.io", 9252},
+		Server{"tracker.lbry.pigg.es", 9252},
+		Server{"tracker.lizard.technology", 9252},
+		Server{"s1.lbry.network", 9252},
 	)},
 	{name: "lbryum_servers", kind: kindServers, def: servers(
-		server{"spv11.lbry.com", 50001},
-		server{"spv12.lbry.com", 50001},
-		server{"spv13.lbry.com", 50001},
-		server{"spv14.lbry.com", 50001},
-		server{"spv15.lbry.com", 50001},
-		server{"spv16.lbry.com", 50001},
-		server{"spv17.lbry.com", 50001},
-		server{"spv18.lbry.com", 50001},
-		server{"spv19.lbry.com", 50001},
-		server{"hub.lbry.grin.io", 50001},
-		server{"hub.lizard.technology", 50001},
-		server{"s1.lbry.network", 50001},
+		Server{"spv11.lbry.com", 50001},
+		Server{"spv12.lbry.com", 50001},
+		Server{"spv13.lbry.com", 50001},
+		Server{"spv14.lbry.com", 50001},
+		Server{"spv15.lbry.com", 50001},
+		Server{"spv16.lbry.com", 50001},
+		Server{"spv17.lbry.com", 50001},
+		Server{"spv18.lbry.com", 50001},
+		Server{"spv19.lbry.com", 50001},
+		Server{"hub.lbry.grin.io", 50001},
+		Server{"hub.lizard.technology", 50001},
+		Server{"s1.lbry.network", 50001},
 	)},
 	{name: "known_dht_nodes", kind: kindServers, def: servers(
-		server{"dht.lbry.grin.io", 4444},
-		server{"dht.lbry.madiator.com", 4444},
-		server{"dht.lbry.pigg.es", 4444},
-		server{"lbrynet1.lbry.com", 4444},
-		server{"lbrynet2.lbry.com", 4444},
-		server{"lbrynet3.lbry.com", 4444},
-		server{"lbrynet4.lbry.com", 4444},
-		server{"dht.lizard.technology", 4444},
-		server{"s2.lbry.network", 4444},
+		Server{"dht.lbry.grin.io", 4444},
+		Server{"dht.lbry.madiator.com", 4444},
+		Server{"dht.lbry.pigg.es", 4444},
+		Server{"lbrynet1.lbry.com", 4444},
+		Server{"lbrynet2.lbry.com", 4444},
+		Server{"lbrynet3.lbry.com", 4444},
+		Server{"lbrynet4.lbry.com", 4444},
+		Server{"dht.lizard.technology", 4444},
+		Server{"s2.lbry.network", 4444},
 	)},
 
 	// blockchain
@@ -140,8 +140,8 @@ var definitions = []definition{
 	{name: "save_resolved_claims", kind: kindBool, def: true},
 }
 
-var definitionsByName = func() map[string]*definition {
-	m := make(map[string]*definition, len(definitions))
+var definitionsByName = func() map[string]*Definition {
+	m := make(map[string]*Definition, len(definitions))
 	for i := range definitions {
 		m[definitions[i].name] = &definitions[i]
 	}

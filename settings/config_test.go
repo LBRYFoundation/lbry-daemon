@@ -11,12 +11,12 @@ import (
 )
 
 // testEnv is a Linux environment whose data directory is a fresh temp dir.
-func testEnv(t *testing.T) (environment, string) {
+func testEnv(t *testing.T) (Environment, string) {
 	t.Helper()
 	dataDir := t.TempDir()
 	home := t.TempDir()
 	vars := map[string]string{"LBRY_DATA_DIR": dataDir}
-	return environment{
+	return Environment{
 		goos:     "linux",
 		home:     home,
 		getenv:   func(k string) string { return vars[k] },
@@ -25,7 +25,7 @@ func testEnv(t *testing.T) (environment, string) {
 	}, dataDir
 }
 
-func openOK(t *testing.T, env environment) Configuration {
+func openOK(t *testing.T, env Environment) Configuration {
 	t.Helper()
 	c, err := Open(env)
 	if err != nil {
@@ -403,12 +403,12 @@ func TestGetUnknown(t *testing.T) {
 }
 
 func TestDefaultDirectories(t *testing.T) {
-	fake := func(goos, home string, vars map[string]string, existing ...string) environment {
+	fake := func(goos, home string, vars map[string]string, existing ...string) Environment {
 		has := map[string]bool{}
 		for _, p := range existing {
 			has[p] = true
 		}
-		return environment{
+		return Environment{
 			goos:     goos,
 			home:     home,
 			getenv:   func(k string) string { return vars[k] },

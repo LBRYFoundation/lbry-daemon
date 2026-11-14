@@ -29,13 +29,13 @@ func IsUserError(err error) bool {
 	return errors.Is(err, ErrUnknownSetting) || errors.Is(err, ErrReadOnly) || errors.As(err, &invalid)
 }
 
-func invalid(d *definition, reason string) error {
+func invalid(d *Definition, reason string) error {
 	return &InvalidValueError{Setting: d.name, Reason: reason}
 }
 
 // coerce turns what a client sent (JSON-decoded, or a string from the command line) into the
 // canonical Go value for the setting, following the SDK's deserialize and validate rules.
-func coerce(d *definition, raw any) (any, error) {
+func coerce(d *Definition, raw any) (any, error) {
 	switch d.kind {
 	case kindString, kindPath:
 		s, ok := raw.(string)
@@ -136,13 +136,13 @@ func coerce(d *definition, raw any) (any, error) {
 				for i, s := range ss {
 					list[i] = s
 				}
-			} else if ds, isServers := raw.([]server); isServers {
-				return append([]server{}, ds...), nil
+			} else if ds, isServers := raw.([]Server); isServers {
+				return append([]Server{}, ds...), nil
 			} else {
 				return nil, invalid(d, `must be a list of servers like "host:port".`)
 			}
 		}
-		out := make([]server, 0, len(list))
+		out := make([]Server, 0, len(list))
 		for i, item := range list {
 			s, err := parseServer(item)
 			if err != nil {
@@ -159,33 +159,33 @@ func coerce(d *definition, raw any) (any, error) {
 }
 
 // parseServer accepts "host:port" or a [host, port] pair.
-func parseServer(item any) (server, error) {
+func parseServer(item any) (Server, error) {
 	switch v := item.(type) {
 	case string:
 		host, portText, found := strings.Cut(v, ":")
 		if !found || host == "" || strings.Contains(portText, ":") {
-			return server{}, fmt.Errorf("%q is not host:port", v)
+			return Server{}, fmt.Errorf("%q is not host:port", v)
 		}
 		port, err := strconv.Atoi(portText)
 		if err != nil || port < 1 || port > 65535 {
-			return server{}, fmt.Errorf("%q has a bad port", v)
+			return Server{}, fmt.Errorf("%q has a bad port", v)
 		}
-		return server{host, port}, nil
+		return Server{host, port}, nil
 	case []any:
 		if len(v) != 2 {
-			return server{}, fmt.Errorf("a server is [host, port]")
+			return Server{}, fmt.Errorf("a server is [host, port]")
 		}
 		host, ok := v[0].(string)
 		if !ok || host == "" {
-			return server{}, fmt.Errorf("the host must be a string")
+			return Server{}, fmt.Errorf("the host must be a string")
 		}
 		port, ok := v[1].(float64)
 		if !ok || port != math.Trunc(port) || port < 1 || port > 65535 {
-			return server{}, fmt.Errorf("the port must be a whole number from 1 to 65535")
+			return Server{}, fmt.Errorf("the port must be a whole number from 1 to 65535")
 		}
-		return server{host, int(port)}, nil
+		return Server{host, int(port)}, nil
 	}
-	return server{}, fmt.Errorf("a server is \"host:port\"")
+	return Server{}, fmt.Errorf("a server is \"host:port\"")
 }
 
 func validCurrency(c string) bool {
@@ -199,7 +199,7 @@ func validCurrency(c string) bool {
 
 // coerceMaxKeyFee accepts null (no limit), {"currency", "amount"}, "AMOUNT CURRENCY", "null" or
 // [AMOUNT, CURRENCY].
-func coerceMaxKeyFee(d *definition, raw any) (any, error) {
+func coerceMaxKeyFee(d *Definition, raw any) (any, error) {
 	badFormat := invalid(d, `must be null, or like {"amount": 50.0, "currency": "USD"}.`)
 	build := func(amount any, currency any) (any, error) {
 		cur, ok := currency.(string)
@@ -210,7 +210,7 @@ func coerceMaxKeyFee(d *definition, raw any) (any, error) {
 		if !validCurrency(cur) {
 			return nil, invalid(d, "has an unknown currency "+strconv.Quote(cur)+"; use one of "+strings.Join(currencies, ", ")+".")
 		}
-		f, err := coerce(&definition{name: d.name, kind: kindFloat}, amount)
+		f, err := coerce(&Definition{name: d.name, kind: kindFloat}, amount)
 		if err != nil {
 			return nil, invalid(d, "amount must be a decimal.")
 		}
@@ -256,9 +256,9 @@ func coerceMaxKeyFee(d *definition, raw any) (any, error) {
 
 // export is the shape settings_get and settings_set return: servers as [host, port] pairs, like
 // lbrynet's settings_dict.
-func export(d *definition, value any) any {
+func export(d *Definition, value any) any {
 	switch v := value.(type) {
-	case []server:
+	case []Server:
 		out := make([]any, len(v))
 		for i, s := range v {
 			out[i] = []any{s.host, s.port}
@@ -274,7 +274,7 @@ func export(d *definition, value any) any {
 
 // persist is the shape written to the settings file: servers as "host:port", like lbrynet's yml.
 func persist(value any) any {
-	if v, ok := value.([]server); ok {
+	if v, ok := value.([]Server); ok {
 		out := make([]string, len(v))
 		for i, s := range v {
 			out[i] = s.host + ":" + strconv.Itoa(s.port)
