@@ -19,10 +19,11 @@ func newTestHandler(t *testing.T) http.Handler {
 	return server.httpServer.Handler
 }
 
-// wallet_balance needs an authenticated user: an allowed request reaches the handler (501, not implemented),
-// a Refused one is answered 401.
+// wallet_list needs an authenticated user: an allowed request reaches the handler (it answers with a list),
+// a Refused one is answered 401. A method that is implemented, so that the tests keep working as the methods
+// that are still answered 501 get implemented.
 const (
-	Reached = "not implemented"
+	Reached = `"items"`
 	Refused = "Not permitted"
 )
 
@@ -40,7 +41,7 @@ func do(handler http.Handler, o opts) *httptest.ResponseRecorder {
 	if o.host == "" {
 		o.host = "localhost:5279"
 	}
-	body := `{"jsonrpc":"2.0","id":1,"method":"wallet_balance","params":{}}`
+	body := `{"jsonrpc":"2.0","id":1,"method":"wallet_list","params":{}}`
 	if o.method == "OPTIONS" {
 		body = ""
 	}
