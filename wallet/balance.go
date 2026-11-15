@@ -65,14 +65,33 @@ const (
 // unconfirmed transactions or 1 for confirmed ones only (lbry-sdk's wallet_balance default is 0). It only
 // needs public keys, so it works on a locked wallet. A hub failure is an error, never a zero balance.
 func WalletBalance(hub Hub, accounts []*Account, confirmations int) (Balance, error) {
-	if confirmations < 0 || confirmations > 1 {
-		return Balance{}, ErrUnsupportedConfirmations
+	results, err := scanAccounts(hub, accounts, confirmations)
+	if err != nil {
+		return Balance{}, err
 	}
-	// Each chain of each account is scanned on its own, all at once: a scan is a few round trips in a row.
-	type scanned struct {
-		unspent []unspentOutput
-		hashes  [][]byte
-		err     error
+	var unspent []unspentOutput
+	owned := map[string]bool{} // public key hashes of the wallet's addresses
+	for _, result := range results {
+		unspent = append(unspent, result.unspent...)
+		for _, hash := range result.hashes {
+			owned[string(hash)] = true
+		}
+	}
+	return classify(hub, unspent, owned)
+}
+
+// scanned is what one chain of one account holds.
+type scanned struct {
+	unspent []unspentOutput
+	hashes  [][]byte
+	err     error
+}
+
+// scanAccounts scans every chain of every account at once (a scan is a few round trips in a row). The result
+// has two entries per account, its receiving chain and then its change chain. confirmations is checked here.
+func scanAccounts(hub Hub, accounts []*Account, confirmations int) ([]scanned, error) {
+	if confirmations < 0 || confirmations > 1 {
+		return nil, ErrUnsupportedConfirmations
 	}
 	results := make([]scanned, len(accounts)*2)
 	var wg sync.WaitGroup
@@ -86,19 +105,12 @@ func WalletBalance(hub Hub, accounts []*Account, confirmations int) (Balance, er
 		}
 	}
 	wg.Wait()
-
-	var unspent []unspentOutput
-	owned := map[string]bool{} // public key hashes of the wallet's addresses
 	for _, result := range results {
 		if result.err != nil {
-			return Balance{}, result.err
-		}
-		unspent = append(unspent, result.unspent...)
-		for _, hash := range result.hashes {
-			owned[string(hash)] = true
+			return nil, result.err
 		}
 	}
-	return classify(hub, unspent, owned)
+	return results, nil
 }
 
 type unspentOutput struct {
