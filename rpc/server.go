@@ -761,7 +761,7 @@ func handleJSONRPCMessageClaimList(rpcServer *RPCServer, w http.ResponseWriter, 
 
 // Hub connection timeouts. Variables so that tests can shorten them.
 var (
-	HubDialTimeout  = 5 * time.Second
+	HubDialTimeout  = 3 * time.Second
 	HubReplyTimeout = 15 * time.Second
 )
 
@@ -779,18 +779,21 @@ func SendJSON(host string, port int, req any) (map[string]any, error) {
 	return SendJSONToAddresses(addresses, req)
 }
 
-// SendJSONToAddresses tries each address ("host:port") in order and returns the first reply.
+// SendJSONToAddresses tries each address ("host:port") and returns the first reply. An address that failed
+// recently is tried last (see hubHealth), so a dead one costs one timeout, not one per call.
 func SendJSONToAddresses(addresses []string, req any) (map[string]any, error) {
 	data, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 	errs := []error{}
-	for _, address := range addresses {
+	for _, address := range hubAddressHealth.order(addresses) {
 		resp, err := sendJSONToAddress(address, data)
 		if err == nil {
+			hubAddressHealth.succeeded(address)
 			return resp, nil
 		}
+		hubAddressHealth.fail(address)
 		errs = append(errs, fmt.Errorf("%s: %w", address, err))
 	}
 	if len(errs) == 0 {
@@ -2026,16 +2029,6 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 
 // hubClient calls the wallet server and returns the "result" of its reply.
 type hubClient struct{}
-
-func (hubClient) Call(method string, params any) (any, error) {
-	resp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  method,
-		"params":  params,
-	})
-	return hubResult(method, resp, err)
-}
 
 func hubResult(method string, resp map[string]any, err error) (any, error) {
 	if err != nil {

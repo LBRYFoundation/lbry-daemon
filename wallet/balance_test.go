@@ -54,19 +54,37 @@ type fakeHub struct {
 	unspent   map[string][]map[string]any // script hash -> listunspent entries
 	txs       map[string]string           // txid -> raw transaction
 	next      int
-	failOn    string // fail calls of this method
+	failOn    string // the whole batch fails when it holds this method
+	errorOn   string // this method is answered with an error, the rest of the batch with results
 	badFormat bool
 	calls     map[string]int
+	batches   int
 }
 
-func (hub *fakeHub) Call(method string, params any) (any, error) {
+// CallMany answers the requests one by one. A failing method fails the whole batch, as a hub that is down.
+func (hub *fakeHub) CallMany(requests []HubRequest) ([]HubResponse, error) {
+	responses := make([]HubResponse, len(requests))
+	for i, request := range requests {
+		result, err := hub.call(request.Method, request.Params)
+		if err != nil && request.Method == hub.failOn {
+			return nil, err
+		}
+		responses[i] = HubResponse{result, err}
+	}
+	hub.mutex.Lock()
+	hub.batches++
+	hub.mutex.Unlock()
+	return responses, nil
+}
+
+func (hub *fakeHub) call(method string, params any) (any, error) {
 	hub.mutex.Lock()
 	defer hub.mutex.Unlock()
 	if hub.calls == nil {
 		hub.calls = map[string]int{}
 	}
 	hub.calls[method]++
-	if method == hub.failOn {
+	if method == hub.failOn || method == hub.errorOn {
 		return nil, errors.New("hub down")
 	}
 	if method == "blockchain.transaction.get_batch" {
@@ -255,6 +273,12 @@ func TestWalletBalanceHubFailuresAreErrorsNotZero(t *testing.T) {
 			t.Errorf("expected an error, got %+v", got)
 		}
 	}
+	for _, hub := range []*fakeHub{{errorOn: "blockchain.scripthash.listunspent"}, {errorOn: "blockchain.transaction.get_batch"}} {
+		hub.use(t, publicKeyG, ReceivingChain, 0, 1, 1)
+		if got, err := WalletBalance(hub, accounts, 0); err == nil {
+			t.Errorf("an error answer must fail the request, got %+v", got)
+		}
+	}
 	for _, method := range []string{"blockchain.scripthash.listunspent", "blockchain.transaction.get_batch"} {
 		hub := &fakeHub{failOn: method}
 		hub.use(t, publicKeyG, ReceivingChain, 0, 1, 1)
@@ -330,5 +354,21 @@ func TestFormatLBC(t *testing.T) {
 		if got := FormatLBC(dewies); got != want {
 			t.Errorf("FormatLBC(%d) = %s, want %s", dewies, got, want)
 		}
+	}
+}
+
+// A window of addresses is one batch, and the chains are scanned side by side, so a wallet costs a few round
+// trips however many addresses it has.
+func TestWalletBalanceBatchesEachWindow(t *testing.T) {
+	hub := &fakeHub{}
+	if _, err := WalletBalance(hub, []*Account{{PublicKey: publicKeyG}}, 0); err != nil {
+		t.Fatal(err)
+	}
+	// An unused account: one window of 20 receiving addresses and one of 6 change addresses.
+	if hub.batches != 2 {
+		t.Errorf("%d batches, want 2", hub.batches)
+	}
+	if hub.calls["blockchain.scripthash.get_history"] != 26 || hub.calls["blockchain.scripthash.listunspent"] != 26 {
+		t.Errorf("calls: %v", hub.calls)
 	}
 }
