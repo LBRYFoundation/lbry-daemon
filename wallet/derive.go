@@ -4,6 +4,7 @@ import "crypto/hmac"
 import "crypto/sha256"
 import "crypto/sha512"
 import "encoding/binary"
+import "encoding/hex"
 import "errors"
 import "fmt"
 
@@ -103,9 +104,19 @@ func (key *ExtendedPublicKey) Address() string {
 	return AddressFromPublicKey(key.key[:])
 }
 
-// DeriveAddresses returns count addresses of a chain (ReceivingChain or ChangeChain) starting at index start,
-// from an account's extended public key.
-func DeriveAddresses(extended string, chain uint32, start uint32, count int) ([]string, error) {
+// ScriptHash is what the wallet server indexes an address by: the SHA-256 of its pay-to-public-key-hash
+// output script (OP_DUP OP_HASH160 <hash160> OP_EQUALVERIFY OP_CHECKSIG), byte-reversed, in hex.
+func (key *ExtendedPublicKey) ScriptHash() string {
+	script := append(append([]byte{0x76, 0xa9, 0x14}, hash160(key.key[:])...), 0x88, 0xac)
+	sum := sha256.Sum256(script)
+	for i, j := 0, len(sum)-1; i < j; i, j = i+1, j-1 {
+		sum[i], sum[j] = sum[j], sum[i]
+	}
+	return hex.EncodeToString(sum[:])
+}
+
+// DeriveKeys returns count keys of a chain starting at index start, from an account's extended public key.
+func DeriveKeys(extended string, chain uint32, start uint32, count int) ([]*ExtendedPublicKey, error) {
 	key, err := ParseExtendedPublicKey(extended)
 	if err != nil {
 		return nil, err
@@ -114,13 +125,27 @@ func DeriveAddresses(extended string, chain uint32, start uint32, count int) ([]
 	if err != nil {
 		return nil, err
 	}
-	addresses := make([]string, 0, count)
-	for index := start; len(addresses) < count; index++ {
+	keys := make([]*ExtendedPublicKey, 0, count)
+	for index := start; len(keys) < count; index++ {
 		child, err := chainKey.Child(index)
 		if err != nil {
 			return nil, err
 		}
-		addresses = append(addresses, child.Address())
+		keys = append(keys, child)
+	}
+	return keys, nil
+}
+
+// DeriveAddresses returns count addresses of a chain (ReceivingChain or ChangeChain) starting at index start,
+// from an account's extended public key.
+func DeriveAddresses(extended string, chain uint32, start uint32, count int) ([]string, error) {
+	keys, err := DeriveKeys(extended, chain, start, count)
+	if err != nil {
+		return nil, err
+	}
+	addresses := make([]string, len(keys))
+	for i, key := range keys {
+		addresses[i] = key.Address()
 	}
 	return addresses, nil
 }

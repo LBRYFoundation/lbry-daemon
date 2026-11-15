@@ -39,6 +39,7 @@ type RPCServer struct {
 	dhtNode       *dht.Node
 	httpServer    http.Server
 	walletManager wallet.WalletManager
+	hub           wallet.Hub
 }
 
 func NewRPCServer(configuration settings.Configuration, authManager auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager wallet.WalletManager) *RPCServer {
@@ -51,6 +52,7 @@ func NewRPCServer(configuration settings.Configuration, authManager auth.AuthMan
 		dhtNode:       dhtNode,
 		httpServer:    http.Server{Handler: rpcServeMux},
 		walletManager: walletManager,
+		hub:           hubClient{},
 	}
 
 	rpcServeMux.HandleFunc("/", server.handleJSONRPC)
@@ -1979,21 +1981,68 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	authenticated = true // Temporary
 	if authenticated {
-		_ = user
-		// TODO Implement real wallet balance
-		sendResultResponse(w, map[string]any{
-			"available": 123,
-			"reserved":  123,
-			"reserved_subtotals": map[string]any{
-				"claims":   123,
-				"supports": 123,
-				"tips":     123,
-			},
-			"total": 456,
-		})
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+		walletObj := rpcServer.walletManager.Read(user, walletID)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+		confirmations, err := GetIntegerParameter(paramsMap, "confirmations", false, 0)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
+		balance, err := wallet.WalletBalance(rpcServer.hub, walletObj.Accounts, int(confirmations))
+		switch {
+		case errors.Is(err, wallet.ErrUnsupportedConfirmations):
+			sendErrorResponse(w, 400, err.Error())
+		case err != nil:
+			sendErrorResponse(w, 502, "Could not work out the balance with the wallet server: "+err.Error())
+		default:
+			sendResultResponse(w, map[string]any{
+				"total":     wallet.FormatLBC(balance.Total),
+				"available": wallet.FormatLBC(balance.Available),
+				"reserved":  wallet.FormatLBC(balance.Reserved),
+				// Reserved value is not worked out yet (see wallet.Balance).
+				"reserved_subtotals": map[string]any{"claims": "0.0", "supports": "0.0", "tips": "0.0"},
+			})
+		}
 		return
 	}
 	handleUnauthorized(w)
+}
+
+// hubClient calls the wallet server and returns the "result" of its reply.
+type hubClient struct{}
+
+func (hubClient) Call(method string, params any) (any, error) {
+	resp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
+		"jsonrpc": "2.0",
+		"id":      rand.Int() + 1,
+		"method":  method,
+		"params":  params,
+	})
+	return hubResult(method, resp, err)
+}
+
+func hubResult(method string, resp map[string]any, err error) (any, error) {
+	if err != nil {
+		return nil, err
+	}
+	result, has := resp["result"]
+	if !has {
+		return nil, fmt.Errorf("%s: %v", method, resp["error"])
+	}
+	return result, nil
 }
 
 func handleJSONRPCMessageWalletCreate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
