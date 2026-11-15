@@ -2012,8 +2012,11 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 				"total":     wallet.FormatLBC(balance.Total),
 				"available": wallet.FormatLBC(balance.Available),
 				"reserved":  wallet.FormatLBC(balance.Reserved),
-				// Reserved value is not worked out yet (see wallet.Balance).
-				"reserved_subtotals": map[string]any{"claims": "0.0", "supports": "0.0", "tips": "0.0"},
+				"reserved_subtotals": map[string]any{
+					"claims":   wallet.FormatLBC(balance.Claims),
+					"supports": wallet.FormatLBC(balance.Supports),
+					"tips":     wallet.FormatLBC(balance.Tips),
+				},
 			})
 		}
 		return
