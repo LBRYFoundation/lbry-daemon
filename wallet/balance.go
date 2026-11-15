@@ -6,9 +6,30 @@ import "strconv"
 import "strings"
 import "sync"
 
-// Hub is a wallet-server connection: one JSON-RPC call, returning the decoded "result".
+// HubRequest is one JSON-RPC call to the wallet server.
+type HubRequest struct {
+	Method string
+	Params any
+}
+
+// HubResponse is the decoded "result" of a reply, or the error the hub answered it with.
+type HubResponse struct {
+	Result any
+	Err    error
+}
+
+// Hub is a wallet-server connection. CallMany sends the requests together, on one connection, and returns
+// the responses in the same order; the error is for the hub as a whole not answering.
 type Hub interface {
-	Call(method string, params any) (any, error)
+	CallMany(requests []HubRequest) ([]HubResponse, error)
+}
+
+func callOne(hub Hub, method string, params any) (any, error) {
+	responses, err := hub.CallMany([]HubRequest{{method, params}})
+	if err != nil {
+		return nil, err
+	}
+	return responses[0].Result, responses[0].Err
 }
 
 // ErrUnsupportedConfirmations is returned for a confirmations value the hub cannot answer.
@@ -30,8 +51,10 @@ const (
 	// maxAddressesPerChain bounds the gap scan, so a hub that reports every address as used cannot make
 	// one request run forever.
 	maxAddressesPerChain = 2000
-	// hubParallelism limits concurrent hub calls from one balance request.
-	hubParallelism = 8
+	// laterWindowGaps sizes the windows after the first, in gaps: the first window is one gap, which is all
+	// an unused account needs, and once an address is used the scan reads further ahead in one round trip.
+	// The stop rule does not depend on the window: it is a whole gap of addresses without history.
+	laterWindowGaps = 3
 	// transactionBatch is how many transactions are asked of the hub in one call.
 	transactionBatch = 50
 )
@@ -43,18 +66,34 @@ func WalletBalance(hub Hub, accounts []*Account, confirmations int) (Balance, er
 	if confirmations < 0 || confirmations > 1 {
 		return Balance{}, ErrUnsupportedConfirmations
 	}
+	// Each chain of each account is scanned on its own, all at once: a scan is a few round trips in a row.
+	type scanned struct {
+		unspent []unspentOutput
+		hashes  [][]byte
+		err     error
+	}
+	results := make([]scanned, len(accounts)*2)
+	var wg sync.WaitGroup
+	for i := range accounts {
+		for chain := uint32(0); chain < 2; chain++ {
+			wg.Add(1)
+			go func(slot int, account *Account, chain uint32) {
+				defer wg.Done()
+				results[slot].unspent, results[slot].hashes, results[slot].err = scanChain(hub, account, chain, confirmations)
+			}(i*2+int(chain), accounts[i], chain)
+		}
+	}
+	wg.Wait()
+
 	var unspent []unspentOutput
 	owned := map[string]bool{} // public key hashes of the wallet's addresses
-	for i := range accounts {
-		for _, chain := range []uint32{ReceivingChain, ChangeChain} {
-			found, hashes, err := scanChain(hub, accounts[i], chain, confirmations)
-			if err != nil {
-				return Balance{}, err
-			}
-			unspent = append(unspent, found...)
-			for _, hash := range hashes {
-				owned[string(hash)] = true
-			}
+	for _, result := range results {
+		if result.err != nil {
+			return Balance{}, result.err
+		}
+		unspent = append(unspent, result.unspent...)
+		for _, hash := range result.hashes {
+			owned[string(hash)] = true
 		}
 	}
 	return classify(hub, unspent, owned)
@@ -65,8 +104,8 @@ type unspentOutput struct {
 	value int64
 }
 
-// scanChain lists a chain's unspent outputs, extending the scan until `gap` addresses in a row have no
-// history. An account with the single-address generator has just its own key.
+// scanChain lists a chain's unspent outputs, reading windows of addresses until `gap` addresses in a row have
+// no history. An account with the single-address generator has just its own key.
 func scanChain(hub Hub, account *Account, chain uint32, confirmations int) ([]unspentOutput, [][]byte, error) {
 	if account.UsesSingleAddress() {
 		if chain == ChangeChain {
@@ -90,8 +129,8 @@ func scanChain(hub Hub, account *Account, chain uint32, confirmations int) ([]un
 	var unspent []unspentOutput
 	var hashes [][]byte
 	lastUsed := -1
-	for start := 0; start < maxAddressesPerChain; start += gap {
-		keys, err := DeriveKeys(account.PublicKey, chain, uint32(start), gap)
+	for start, window := 0, gap; start < maxAddressesPerChain; start, window = start+window, gap*laterWindowGaps {
+		keys, err := DeriveKeys(account.PublicKey, chain, uint32(start), window)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -100,14 +139,18 @@ func scanChain(hub Hub, account *Account, chain uint32, confirmations int) ([]un
 			return nil, nil, err
 		}
 		for i, result := range results {
+			index := start + i
+			if index-lastUsed > gap {
+				return unspent, hashes, nil // a whole gap after the last used address has no history
+			}
 			unspent = append(unspent, result.unspent...)
 			hashes = append(hashes, keys[i].Hash160())
 			if result.used {
-				lastUsed = start + i
+				lastUsed = index
 			}
 		}
-		if start+gap-1-lastUsed >= gap {
-			break
+		if start+len(results)-1-lastUsed >= gap {
+			break // the window ends with a whole gap without history, so there is nothing further to read
 		}
 	}
 	return unspent, hashes, nil
@@ -118,67 +161,62 @@ type addressResult struct {
 	used    bool
 }
 
+// queryKeys asks the hub about the keys' addresses with one batch: the history of each, to tell whether it is
+// used, and its unspent outputs, which are only read for a used one. Asking for both at once costs one round
+// trip for the whole window instead of two.
 func queryKeys(hub Hub, keys []*ExtendedPublicKey, confirmations int) ([]addressResult, error) {
-	results := make([]addressResult, len(keys))
-	errs := make([]error, len(keys))
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, hubParallelism)
-	for i := range keys {
-		wg.Add(1)
-		slots <- struct{}{}
-		go func(i int) {
-			defer wg.Done()
-			defer func() { <-slots }()
-			results[i], errs[i] = queryKey(hub, keys[i], confirmations)
-		}(i)
+	requests := make([]HubRequest, 0, 2*len(keys))
+	for _, key := range keys {
+		requests = append(requests, HubRequest{"blockchain.scripthash.get_history", []any{key.ScriptHash()}})
 	}
-	wg.Wait()
-	for _, err := range errs {
-		if err != nil {
-			return nil, err
+	for _, key := range keys {
+		requests = append(requests, HubRequest{"blockchain.scripthash.listunspent", []any{key.ScriptHash()}})
+	}
+	responses, err := hub.CallMany(requests)
+	if err != nil {
+		return nil, err
+	}
+	if len(responses) != len(requests) {
+		return nil, errors.New("the wallet server answered the wrong number of requests")
+	}
+
+	results := make([]addressResult, len(keys))
+	for i, key := range keys {
+		history, listed := responses[i], responses[len(keys)+i]
+		if history.Err != nil {
+			return nil, history.Err
+		}
+		items, isList := history.Result.([]any)
+		if !isList {
+			return nil, fmt.Errorf("the wallet server sent an unexpected history for %s", key.Address())
+		}
+		results[i].used = len(items) > 0
+		if !results[i].used {
+			continue // no history, so nothing unspent
+		}
+		if listed.Err != nil {
+			return nil, listed.Err
+		}
+		entries, isList := listed.Result.([]any)
+		if !isList {
+			return nil, fmt.Errorf("the wallet server sent an unexpected unspent list for %s", key.Address())
+		}
+		for _, entry := range entries {
+			fields, isMap := entry.(map[string]any)
+			txid, txidOK := fields["tx_hash"].(string)
+			position, positionOK := fields["tx_pos"].(float64)
+			height, heightOK := fields["height"].(float64)
+			value, valueOK := fields["value"].(float64)
+			if !isMap || !txidOK || !positionOK || !heightOK || !valueOK {
+				return nil, fmt.Errorf("the wallet server sent an unexpected unspent output for %s", key.Address())
+			}
+			if confirmations > 0 && height <= 0 {
+				continue // not in a block yet
+			}
+			results[i].unspent = append(results[i].unspent, unspentOutput{outPoint{txid, uint32(position)}, int64(value)})
 		}
 	}
 	return results, nil
-}
-
-func queryKey(hub Hub, key *ExtendedPublicKey, confirmations int) (addressResult, error) {
-	scriptHash := key.ScriptHash()
-	history, err := hub.Call("blockchain.scripthash.get_history", []any{scriptHash})
-	if err != nil {
-		return addressResult{}, err
-	}
-	items, isList := history.([]any)
-	if !isList {
-		return addressResult{}, fmt.Errorf("the wallet server sent an unexpected history for %s", key.Address())
-	}
-	result := addressResult{used: len(items) > 0}
-	if !result.used {
-		return result, nil // no history, so nothing unspent
-	}
-
-	listed, err := hub.Call("blockchain.scripthash.listunspent", []any{scriptHash})
-	if err != nil {
-		return addressResult{}, err
-	}
-	entries, isList := listed.([]any)
-	if !isList {
-		return addressResult{}, fmt.Errorf("the wallet server sent an unexpected unspent list for %s", key.Address())
-	}
-	for _, entry := range entries {
-		fields, isMap := entry.(map[string]any)
-		txid, txidOK := fields["tx_hash"].(string)
-		position, positionOK := fields["tx_pos"].(float64)
-		height, heightOK := fields["height"].(float64)
-		value, valueOK := fields["value"].(float64)
-		if !isMap || !txidOK || !positionOK || !heightOK || !valueOK {
-			return addressResult{}, fmt.Errorf("the wallet server sent an unexpected unspent output for %s", key.Address())
-		}
-		if confirmations > 0 && height <= 0 {
-			continue // not in a block yet
-		}
-		result.unspent = append(result.unspent, unspentOutput{outPoint{txid, uint32(position)}, int64(value)})
-	}
-	return result, nil
 }
 
 // classify splits the unspent outputs like lbry-sdk's get_detailed_balance: claims and supports are
@@ -269,7 +307,7 @@ func fetchTransactions(hub Hub, txids []string) (map[string]*transaction, error)
 		for i, txid := range batch {
 			params[i] = txid
 		}
-		result, err := hub.Call("blockchain.transaction.get_batch", params)
+		result, err := callOne(hub, "blockchain.transaction.get_batch", params)
 		if err != nil {
 			return nil, err
 		}
