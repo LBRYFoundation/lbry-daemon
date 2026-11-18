@@ -969,8 +969,53 @@ func handleJSONRPCMessagePeerPing(rpcServer *RPCServer, w http.ResponseWriter, r
 func handleJSONRPCMessagePreferenceGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			walletID = "default_wallet"
+		}
+		key, hasKey := paramsMap["key"]
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+
+		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+
+		if hasKey {
+			keyString, keyIsString := key.(string)
+			if !keyIsString {
+				sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+				return
+			}
+
+			preference, hasPreference := walletObj.Preferences[keyString]
+
+			if hasPreference {
+				sendResultResponse(w, map[string]any{
+					keyString: preference.Value,
+				})
+				return
+			}
+			sendResultResponse(w, nil)
+			return
+		}
+
+		allPreferences := map[string]any{}
+
+		for preferenceKey, preference := range walletObj.Preferences {
+			allPreferences[preferenceKey] = preference.Value
+		}
+
+		sendResultResponse(w, allPreferences)
 		return
 	}
 	handleUnauthorized(w)
@@ -1008,6 +1053,7 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
 			return
 		}
+		valueString, valueIsString := value.(string)
 
 		walletObj := rpcServer.walletManager.Get(user, walletIDString)
 		if walletObj == nil {
@@ -1015,11 +1061,16 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 			return
 		}
 
+		if valueIsString && (strings.HasPrefix(valueString, "{") || strings.HasPrefix(valueString, "[")) {
+			newValue := map[string]any{}
+			json.Unmarshal([]byte(valueString), &newValue)
+			value = newValue
+		}
+
 		preference, hasPreference := walletObj.Preferences[keyString]
 		if !hasPreference {
 			preference = wallet.Preference{}
 		}
-
 		preference.SetNewValue(value)
 
 		err := walletObj.Save()
