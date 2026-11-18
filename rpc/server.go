@@ -80,7 +80,9 @@ func sendErrorResponse(w http.ResponseWriter, code int, message string) {
 func (rpcServer *RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Request) {
 	info, _ := debug.ReadBuildInfo()
 
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	// CORS is open, as in lbry-sdk. Every client, local or remote, has to authenticate: the protection is
+	// the credentials on the request, not where it came from.
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
