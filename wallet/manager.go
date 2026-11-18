@@ -55,7 +55,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 		}
 		locked := false
 		for _, account := range parsed.Accounts {
-			if account.Encrypted {
+			if account.Locked {
 				locked = true
 			}
 		}
@@ -110,11 +110,11 @@ func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool
 	}
 	pending := make([]pendingEncryption, 0, len(wallet.Accounts))
 	for i := range wallet.Accounts {
-		if wallet.Accounts[i].Encrypted {
+		if wallet.Accounts[i].Locked {
 			continue
 		}
 		account := wallet.Accounts[i]
-		if err := account.Encrypt(wallet.password); err != nil {
+		if err := account.Lock(wallet.password); err != nil {
 			return false
 		}
 		pending = append(pending, pendingEncryption{index: i, account: account})
@@ -143,11 +143,11 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 	}
 	pending := make([]pendingDecryption, 0, len(wallet.Accounts))
 	for i := range wallet.Accounts {
-		if !wallet.Accounts[i].Encrypted {
+		if !wallet.Accounts[i].Locked {
 			continue
 		}
 		account := wallet.Accounts[i]
-		if err := account.Decrypt(password); err != nil {
+		if err := account.Unlock(password); err != nil {
 			return false
 		}
 		pending = append(pending, pendingDecryption{index: i, account: account})

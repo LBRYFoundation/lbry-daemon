@@ -24,7 +24,7 @@ type Wallet struct {
 
 type Account struct {
 	Name       string `json:"name"`
-	Encrypted  bool   `json:"encrypted"`
+	Locked     bool   `json:"encrypted"`
 	Seed       string `json:"seed"`
 	PrivateKey string `json:"private_key"`
 	PublicKey  string `json:"public_key"`
@@ -47,40 +47,40 @@ func (wallet *Wallet) IsSyncing() bool {
 	return false
 }
 
-func (account *Account) Encrypt(password string) error {
-	if account.Encrypted {
-		return errors.New("Account is already encrypted.")
+func (account *Account) Lock(password string) error {
+	if account.Locked {
+		return errors.New("Account is already locked.")
 	}
-	var encryptedSeed string
-	var encryptedPrivateKey string
+	var lockedSeed string
+	var lockedPrivateKey string
 
 	if account.Seed != "" {
 		// TODO Cache Initialization Vector
 		iv, _ := crypto.NewIV()
-		encryptedSeed = crypto.Encrypt(password, account.Seed, iv[:])
+		lockedSeed = crypto.Encrypt(password, account.Seed, iv[:])
 	}
 	if account.PrivateKey != "" {
 		// TODO Cache Initialization Vector
 		iv, _ := crypto.NewIV()
-		encryptedPrivateKey = crypto.Encrypt(password, account.PrivateKey, iv[:])
+		lockedPrivateKey = crypto.Encrypt(password, account.PrivateKey, iv[:])
 	}
 
-	account.Seed = encryptedSeed
-	account.PrivateKey = encryptedPrivateKey
-	account.Encrypted = true
+	account.Seed = lockedSeed
+	account.PrivateKey = lockedPrivateKey
+	account.Locked = true
 	return nil
 }
 
-func (account *Account) Decrypt(password string) error {
-	if !account.Encrypted {
-		return errors.New("Account is not encrypted.")
+func (account *Account) Unlock(password string) error {
+	if !account.Locked {
+		return errors.New("Account is already unlocked.")
 	}
-	var decryptedSeed string
-	var decryptedPrivateKey string
+	var unlockedSeed string
+	var unlockedPrivateKey string
 
 	if account.Seed != "" {
 		var err error
-		decryptedSeed, err = crypto.Decrypt(password, account.Seed)
+		unlockedSeed, err = crypto.Decrypt(password, account.Seed)
 		if err != nil {
 			return err
 		}
@@ -88,14 +88,14 @@ func (account *Account) Decrypt(password string) error {
 
 	if account.PrivateKey != "" {
 		var err error
-		decryptedPrivateKey, err = crypto.Decrypt(password, account.PrivateKey)
+		unlockedPrivateKey, err = crypto.Decrypt(password, account.PrivateKey)
 		if err != nil {
 			return err
 		}
 	}
 
-	account.Seed = decryptedSeed
-	account.PrivateKey = decryptedPrivateKey
-	account.Encrypted = false
+	account.Seed = unlockedSeed
+	account.PrivateKey = unlockedPrivateKey
+	account.Locked = false
 	return nil
 }
