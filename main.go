@@ -22,7 +22,8 @@ func main() {
 	node, _ := dht.NewNode(4444)
 	//blob.NewManager(node)
 
-	authManager := &auth.AuthManager{}
+	authManager := auth.NewDefaultAuthManager()
+
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},
 	}
@@ -50,10 +51,9 @@ func main() {
 	if rpcServer != nil {
 		wg.Go(func() {
 			fmt.Println("Starting RPC server on port 5279.")
-			// Loopback only. Reading the address from the settings file (the SDK's "api" setting) is a separate change.
 			listener, err := getTCPListener("127.0.0.1", 5279)
 			if err != nil {
-				fmt.Println("Error when getting TCP listener.")
+				fmt.Println("Failed listening on TCP port for RPC server.")
 				return
 			}
 			defer listener.Close()
@@ -67,7 +67,7 @@ func main() {
 			fmt.Println("Starting content server on port 5280.")
 			listener, err := getTCPListener("", 5280)
 			if err != nil {
-				fmt.Println("Error when getting TCP listener.")
+				fmt.Println("Failed listening on TCP port for content server.")
 				return
 			}
 			defer listener.Close()
@@ -81,7 +81,7 @@ func main() {
 			fmt.Println("Starting reflector server on port 5566.")
 			listener, err := getTCPListener("", 5566)
 			if err != nil {
-				fmt.Println("Error when getting TCP listener.")
+				fmt.Println("Failed listening on TCP port for reflector server.")
 				return
 			}
 			defer listener.Close()
@@ -95,7 +95,7 @@ func main() {
 			fmt.Println("Starting peer server on port 5567.")
 			listener, err := getTCPListener("", 5567)
 			if err != nil {
-				fmt.Println("Error when getting TCP listener.")
+				fmt.Println("Failed listening on TCP port for peer server.")
 				return
 			}
 			defer listener.Close()

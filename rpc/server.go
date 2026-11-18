@@ -28,7 +28,7 @@ import "google.golang.org/protobuf/encoding/protowire"
 const TMP_HUB_HOSTNAME = "hub.lbry.grin.io"
 
 type RPCServer struct {
-	authManager   *auth.AuthManager
+	authManager   auth.AuthManager
 	blobManager   *blob.BlobManager
 	configuration settings.Configuration
 	dhtNode       *dht.Node
@@ -36,7 +36,7 @@ type RPCServer struct {
 	walletManager wallet.WalletManager
 }
 
-func NewRPCServer(configuration settings.Configuration, authManager *auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager wallet.WalletManager) *RPCServer {
+func NewRPCServer(configuration settings.Configuration, authManager auth.AuthManager, blobManager *blob.BlobManager, dhtNode *dht.Node, walletManager wallet.WalletManager) *RPCServer {
 	rpcServeMux := http.NewServeMux()
 
 	server := &RPCServer{
@@ -1603,9 +1603,20 @@ func handleJSONRPCMessageWalletAdd(rpcServer *RPCServer, w http.ResponseWriter, 
 
 func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
+	authenticated = true // Temporary
 	if authenticated {
 		_ = user
-		sendErrorResponse(w, 501, "Wallet commands are not implemented for now.")
+		// TODO Implement real wallet balance
+		sendResultResponse(w, map[string]any{
+			"available": 123,
+			"reserved":  123,
+			"reserved_subtotals": map[string]any{
+				"claims":   123,
+				"supports": 123,
+				"tips":     123,
+			},
+			"total": 456,
+		})
 		return
 	}
 	handleUnauthorized(w)

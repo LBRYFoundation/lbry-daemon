@@ -5,35 +5,41 @@ import "net/http"
 
 import "lbry/daemon/environment"
 
-type AuthManager struct {
+type DefaultAuthManager struct {
 	Users []User
+}
+
+var _ AuthManager = (*DefaultAuthManager)(nil)
+
+func NewDefaultAuthManager() AuthManager {
+	return &DefaultAuthManager{}
 }
 
 type User struct {
 }
 
-func (authManager *AuthManager) WantsRPCAuthentication() bool {
+func (authManager *DefaultAuthManager) WantsRPCAuthentication() bool {
 	return true
 }
 
-func (authManager *AuthManager) ValidateGuest(req *http.Request) (*User, bool) {
+func (authManager *DefaultAuthManager) ValidateGuest(req *http.Request) (*User, bool) {
 	return nil, true
 }
 
-func (authManager *AuthManager) ValidateUser(req *http.Request) (*User, bool) {
-    // TODO Validate normal user
+func (authManager *DefaultAuthManager) ValidateUser(req *http.Request) (*User, bool) {
+	// TODO Validate normal user
 	return authManager.ValidateAdminUser(req)
 }
 
-func (authManager *AuthManager) ValidateAdminUser(req *http.Request) (*User, bool) {
+func (authManager *DefaultAuthManager) ValidateAdminUser(req *http.Request) (*User, bool) {
 	username, password, hasBasic := req.BasicAuth()
 	if hasBasic && username != "" && password != "" {
 		userOK := subtle.ConstantTimeCompare([]byte(username), []byte(environment.AdminUsername()))
-    	passOK := subtle.ConstantTimeCompare([]byte(password), []byte(environment.AdminPassword()))
+		passOK := subtle.ConstantTimeCompare([]byte(password), []byte(environment.AdminPassword()))
 
-    	if userOK&passOK == 1 {
-    	    return &User{}, true
-    	}
+		if userOK&passOK == 1 {
+			return &User{}, true
+		}
 	}
 	return nil, false
 }
