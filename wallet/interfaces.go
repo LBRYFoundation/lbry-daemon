@@ -1,6 +1,9 @@
 package wallet
 
+import "encoding/json"
 import "errors"
+import "fmt"
+import "time"
 import "lbry/daemon/auth"
 import "lbry/daemon/crypto"
 
@@ -23,19 +26,6 @@ type Wallet struct {
 	password  string // set while unlocked with a password, enables Lock
 }
 
-type Account struct {
-	Name       string `json:"name"`
-	Locked     bool   `json:"encrypted"`
-	Seed       string `json:"seed"`
-	PrivateKey string `json:"private_key"`
-	PublicKey  string `json:"public_key"`
-}
-
-type Preference struct {
-	TimeStamp int64
-	Value     any
-}
-
 func (wallet *Wallet) IsEncrypted() bool {
 	return wallet.encrypted
 }
@@ -46,6 +36,19 @@ func (wallet *Wallet) IsLocked() bool {
 
 func (wallet *Wallet) IsSyncing() bool {
 	return false
+}
+
+func (wallet *Wallet) Save() error {
+	fmt.Println(json.Marshal(wallet))
+	return errors.New("Failed saving wallet.")
+}
+
+type Account struct {
+	Name       string `json:"name"`
+	Locked     bool   `json:"encrypted"`
+	Seed       string `json:"seed"`
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
 }
 
 func (account *Account) Lock(password string) error {
@@ -99,4 +102,14 @@ func (account *Account) Unlock(password string) error {
 	account.PrivateKey = unlockedPrivateKey
 	account.Locked = false
 	return nil
+}
+
+type Preference struct {
+	TimeStamp int64
+	Value     any
+}
+
+func (preference *Preference) SetNewValue(value any) {
+	preference.TimeStamp = time.Now().Unix()
+	preference.Value = value
 }

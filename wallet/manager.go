@@ -59,7 +59,14 @@ func (walletManager *DefaultWalletManager) Load() error {
 				locked = true
 			}
 		}
-		wallets = append(wallets, &Wallet{ID: entry.Name(), Name: name, Accounts: parsed.Accounts, locked: locked})
+		newWallet := &Wallet{
+			ID:          entry.Name(),
+			Name:        name,
+			Accounts:    parsed.Accounts,
+			locked:      locked,
+			Preferences: map[string]Preference{},
+		}
+		wallets = append(wallets, newWallet)
 	}
 	sort.Slice(wallets, func(i, j int) bool { return wallets[i].ID < wallets[j].ID })
 	walletManager.mutex.Lock()
@@ -68,26 +75,19 @@ func (walletManager *DefaultWalletManager) Load() error {
 	return nil
 }
 
-func (wallet *Wallet) snapshot() Wallet {
-	return Wallet{ID: wallet.ID, Name: wallet.Name, locked: wallet.locked, encrypted: wallet.locked || wallet.password != ""}
-}
-
 func (walletManager *DefaultWalletManager) List(user *auth.User) []Wallet {
-	walletManager.mutex.Lock()
-	defer walletManager.mutex.Unlock()
 	result := make([]Wallet, 0, len(walletManager.wallets))
 	for _, wallet := range walletManager.wallets {
-		result = append(result, wallet.snapshot())
+		result = append(result, *wallet)
 	}
 	return result
 }
 
 func (walletManager *DefaultWalletManager) Get(user *auth.User, id string) *Wallet {
-	walletManager.mutex.Lock()
-	defer walletManager.mutex.Unlock()
-	if wallet := walletManager.find(id); wallet != nil {
-		snapshot := wallet.snapshot()
-		return &snapshot
+	for _, wallet := range walletManager.wallets {
+		if wallet.ID == id {
+			return wallet
+		}
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func (walletManager *DefaultWalletManager) Remove(user *auth.User, id string) {
 func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool {
 	walletManager.mutex.Lock()
 	defer walletManager.mutex.Unlock()
-	wallet := walletManager.find(id)
+	wallet := walletManager.Get(user, id)
 	if wallet == nil || wallet.password == "" {
 		return false
 	}
@@ -131,7 +131,7 @@ func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool
 func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, password string) bool {
 	walletManager.mutex.Lock()
 	defer walletManager.mutex.Unlock()
-	wallet := walletManager.find(id)
+	wallet := walletManager.Get(user, id)
 	if wallet == nil {
 		return false
 	}
@@ -159,13 +159,4 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 	wallet.password = password
 	wallet.locked = false
 	return true
-}
-
-func (walletManager *DefaultWalletManager) find(id string) *Wallet {
-	for _, wallet := range walletManager.wallets {
-		if wallet.ID == id {
-			return wallet
-		}
-	}
-	return nil
 }

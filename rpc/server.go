@@ -979,8 +979,58 @@ func handleJSONRPCMessagePreferenceGet(rpcServer *RPCServer, w http.ResponseWrit
 func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			walletID = "default_wallet"
+		}
+		key, hasKey := paramsMap["key"]
+		if !hasKey {
+			sendErrorResponse(w, 400, "Missing parameter 'key'.")
+			return
+		}
+		value, hasValue := paramsMap["value"]
+		if !hasValue {
+			sendErrorResponse(w, 400, "Missing parameter 'value'.")
+			return
+		}
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+			return
+		}
+		keyString, keyIsString := key.(string)
+		if !keyIsString {
+			sendErrorResponse(w, 400, "Parameter 'key' not of type string.")
+			return
+		}
+
+		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+
+		preference, hasPreference := walletObj.Preferences[keyString]
+		if !hasPreference {
+			preference = wallet.Preference{}
+		}
+
+		preference.SetNewValue(value)
+
+		err := walletObj.Save()
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
+		sendResultResponse(w, map[string]any{
+			keyString: value,
+		})
 		return
 	}
 	handleUnauthorized(w)

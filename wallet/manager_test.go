@@ -87,7 +87,7 @@ func TestLockStateThroughPublicAPI(t *testing.T) {
 
 func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 	manager := fixture(t)
-	account := &manager.(*DefaultWalletManager).find("secret").Accounts[0]
+	account := &manager.(*DefaultWalletManager).Get(nil, "secret").Accounts[0]
 	original := account.Seed
 
 	if manager.Unlock(nil, "secret", "wrong"); !account.Locked || account.Seed != original {
@@ -121,7 +121,7 @@ func TestUnlockIsAllOrNothing(t *testing.T) {
 	if manager.Unlock(nil, "two", "pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
-	if first := manager.(*DefaultWalletManager).find("two").Accounts[0]; !first.Locked {
+	if first := manager.(*DefaultWalletManager).Get(nil, "two").Accounts[0]; !first.Locked {
 		t.Fatalf("first account was left decrypted: %q", first.Seed)
 	}
 }
