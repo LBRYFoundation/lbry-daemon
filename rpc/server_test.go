@@ -15,7 +15,7 @@ import (
 func newTestHandler(t *testing.T) http.Handler {
 	t.Setenv("ADMIN_USERNAME", "")
 	t.Setenv("ADMIN_PASSWORD", "")
-	server := NewRPCServer(settings.InitializeConfiguration(), &auth.AuthManager{}, &blob.BlobManager{}, nil, wallet.NewDefaultWalletManager(t.TempDir()))
+	server := NewRPCServer(settings.InitializeConfiguration(), &auth.UserAuthManager{}, &blob.BlobManager{}, nil, wallet.NewDefaultWalletManager(t.TempDir()))
 	return server.httpServer.Handler
 }
 

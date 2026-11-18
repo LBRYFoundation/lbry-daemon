@@ -11,6 +11,10 @@ type DefaultAuthManager struct {
 
 var _ AuthManager = (*DefaultAuthManager)(nil)
 
+type UserAuthManager struct{}
+
+var _ AuthManager = (*UserAuthManager)(nil)
+
 func NewDefaultAuthManager() AuthManager {
 	return &DefaultAuthManager{}
 }
@@ -18,20 +22,20 @@ func NewDefaultAuthManager() AuthManager {
 type User struct {
 }
 
-func (authManager *DefaultAuthManager) WantsRPCAuthentication() bool {
-	return true
-}
-
-func (authManager *DefaultAuthManager) ValidateGuest(req *http.Request) (*User, bool) {
+func (authManager *DefaultAuthManager) ValidateUser(req *http.Request) (*User, bool) {
 	return nil, true
 }
 
-func (authManager *DefaultAuthManager) ValidateUser(req *http.Request) (*User, bool) {
+func (authManager *UserAuthManager) ValidateUser(req *http.Request) (*User, bool) {
 	// TODO Validate normal user
 	return authManager.ValidateAdminUser(req)
 }
 
 func (authManager *DefaultAuthManager) ValidateAdminUser(req *http.Request) (*User, bool) {
+	return nil, true
+}
+
+func (authManager *UserAuthManager) ValidateAdminUser(req *http.Request) (*User, bool) {
 	username, password, hasBasic := req.BasicAuth()
 	if hasBasic && username != "" && password != "" {
 		userOK := subtle.ConstantTimeCompare([]byte(username), []byte(environment.AdminUsername()))

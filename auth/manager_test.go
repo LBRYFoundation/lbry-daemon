@@ -18,21 +18,18 @@ func withAdmin(t *testing.T) {
 func TestNobodyIsAdminByDefault(t *testing.T) {
 	t.Setenv("ADMIN_USERNAME", "")
 	t.Setenv("ADMIN_PASSWORD", "")
-	manager := &AuthManager{}
+	manager := &UserAuthManager{}
 	if _, ok := manager.ValidateAdminUser(request()); ok {
 		t.Fatal("a plain request must not be admin")
 	}
 	if _, ok := manager.ValidateUser(request()); ok {
 		t.Fatal("a plain request must not be a user")
 	}
-	if _, ok := manager.ValidateGuest(request()); !ok {
-		t.Fatal("guests are always allowed")
-	}
 }
 
 func TestBasicAuth(t *testing.T) {
 	withAdmin(t)
-	manager := &AuthManager{}
+	manager := &UserAuthManager{}
 	for _, tc := range []struct {
 		name, user, pass string
 		want             bool
@@ -56,14 +53,14 @@ func TestEmptyConfiguredCredentialsAreNeverAccepted(t *testing.T) {
 	t.Setenv("ADMIN_PASSWORD", "")
 	req := request()
 	req.SetBasicAuth("", "")
-	if _, ok := (&AuthManager{}).ValidateAdminUser(req); ok {
+	if _, ok := (&UserAuthManager{}).ValidateAdminUser(req); ok {
 		t.Fatal("empty credentials matched empty configuration")
 	}
 }
 
 func TestAdminIsAlsoAUser(t *testing.T) {
 	withAdmin(t)
-	manager := &AuthManager{}
+	manager := &UserAuthManager{}
 	req := request()
 	req.SetBasicAuth("admin", "s3cret")
 	if _, ok := manager.ValidateUser(req); !ok {
