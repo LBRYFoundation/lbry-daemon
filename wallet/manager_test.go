@@ -85,27 +85,28 @@ func TestLockStateThroughPublicAPI(t *testing.T) {
 	}
 }
 
-func TestUnlockRetainsDecryptedMaterialUntilLock(t *testing.T) {
+func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 	manager := fixture(t)
 	account := &manager.(*DefaultWalletManager).find("secret").Accounts[0]
+	original := account.Seed
 
-	if manager.Unlock(nil, "secret", "wrong"); account.decryptedSeed != "" || account.decryptedPrivateKey != "" {
-		t.Fatal("a failed unlock must not retain anything")
+	if manager.Unlock(nil, "secret", "wrong"); !account.Encrypted || account.Seed != original {
+		t.Fatal("a failed unlock must leave the account as it was")
 	}
 	if !manager.Unlock(nil, "secret", "hunter2") {
 		t.Fatal("unlock failed")
 	}
-	if account.decryptedSeed != "seed words" || account.decryptedPrivateKey != "xprv-secret" {
-		t.Fatalf("decrypted material not retained: %q %q", account.decryptedSeed, account.decryptedPrivateKey)
-	}
-	if account.Seed == "seed words" {
-		t.Fatal("the encrypted original must be kept as is")
+	if account.Encrypted || account.Seed != "seed words" || account.PrivateKey != "xprv-secret" {
+		t.Fatalf("account not decrypted: %+v", account)
 	}
 	if !manager.Lock(nil, "secret") {
 		t.Fatal("lock failed")
 	}
-	if account.decryptedSeed != "" || account.decryptedPrivateKey != "" {
-		t.Fatal("lock must forget the decrypted material")
+	if !account.Encrypted || account.Seed == "seed words" || account.PrivateKey == "xprv-secret" {
+		t.Fatal("lock must encrypt the account again")
+	}
+	if !manager.Unlock(nil, "secret", "hunter2") || account.Seed != "seed words" {
+		t.Fatal("the locked account must unlock again with the same password")
 	}
 }
 
@@ -120,8 +121,8 @@ func TestUnlockIsAllOrNothing(t *testing.T) {
 	if manager.Unlock(nil, "two", "pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
-	if got := manager.(*DefaultWalletManager).find("two").Accounts[0].decryptedSeed; got != "" {
-		t.Fatalf("first account was left decrypted: %q", got)
+	if first := manager.(*DefaultWalletManager).find("two").Accounts[0]; !first.Encrypted {
+		t.Fatalf("first account was left decrypted: %q", first.Seed)
 	}
 }
 

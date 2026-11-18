@@ -28,11 +28,6 @@ type Account struct {
 	Seed       string `json:"seed"`
 	PrivateKey string `json:"private_key"`
 	PublicKey  string `json:"public_key"`
-
-	// Filled by Unlock, cleared by Lock. Mirrors lbry-sdk's Account.decrypt,
-	// which keeps the plain seed and private key on the account.
-	decryptedSeed       string
-	decryptedPrivateKey string
 }
 
 type Preference struct {
