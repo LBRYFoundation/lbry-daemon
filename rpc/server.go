@@ -1062,8 +1062,14 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 
 		if valueIsString && (strings.HasPrefix(valueString, "{") || strings.HasPrefix(valueString, "[")) {
-			newValue := map[string]any{}
-			json.Unmarshal([]byte(valueString), &newValue)
+			var newValue any
+
+			err := json.Unmarshal([]byte(valueString), &newValue)
+			if err != nil {
+				sendErrorResponse(w, 400, "Failed to decode JSON object or array.")
+				return
+			}
+
 			value = newValue
 		}
 
