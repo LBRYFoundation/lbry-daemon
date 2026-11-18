@@ -18,8 +18,9 @@ type Wallet struct {
 	Accounts    []Account
 	Preferences map[string]Preference
 
-	locked   bool
-	password string // set while unlocked with a password, enables Lock
+	locked    bool
+	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
+	password  string // set while unlocked with a password, enables Lock
 }
 
 type Account struct {
@@ -36,7 +37,7 @@ type Preference struct {
 }
 
 func (wallet *Wallet) IsEncrypted() bool {
-	return false
+	return wallet.encrypted
 }
 
 func (wallet *Wallet) IsLocked() bool {
