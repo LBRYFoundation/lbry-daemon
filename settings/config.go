@@ -10,7 +10,7 @@ type Configuration struct {
 
 func InitializeConfiguration() Configuration {
 	return Configuration{
-		settings: map[string]any{},
+		settings: DEFAULTS,
 	}
 }
 
@@ -24,7 +24,7 @@ func (config Configuration) Clear(key string) (any, error) {
 }
 
 func (config Configuration) Get(key string) any {
-	value, ok := DEFAULTS[key]
+	value, ok := config.settings[key]
 	if ok {
 		return value
 	}
@@ -32,6 +32,6 @@ func (config Configuration) Get(key string) any {
 }
 
 func (config Configuration) Set(key string, value any) (any, error) {
-
+	config.settings[key] = value
 	return config.Get(key), nil
 }

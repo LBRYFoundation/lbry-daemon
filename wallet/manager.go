@@ -60,11 +60,13 @@ func (walletManager *DefaultWalletManager) Load() error {
 			}
 		}
 		newWallet := &Wallet{
-			ID:          entry.Name(),
-			Name:        name,
-			Accounts:    parsed.Accounts,
-			locked:      locked,
-			Preferences: map[string]*Preference{},
+			ID:       entry.Name(),
+			Name:     name,
+			Accounts: parsed.Accounts,
+			locked:   locked,
+			Preferences: map[string]*Preference{
+				"local": &Preference{},
+			},
 		}
 		wallets = append(wallets, newWallet)
 	}

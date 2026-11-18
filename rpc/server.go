@@ -1329,6 +1329,14 @@ func handleJSONRPCMessageSettingsSet(rpcServer *RPCServer, w http.ResponseWriter
 func handleJSONRPCMessageStatus(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
 	sendResultResponse(w, map[string]any{
+		"disk_space": map[string]any{
+			"content_blobs_storage_used_mb": 123,
+		},
+		"ffmpeg_status": map[string]any{
+			"available":            false,
+			"which":                nil,
+			"analyze_audio_volume": nil,
+		},
 		"is_running": true,
 	})
 }
