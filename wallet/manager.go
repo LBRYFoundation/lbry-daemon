@@ -64,7 +64,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 			Name:        name,
 			Accounts:    parsed.Accounts,
 			locked:      locked,
-			Preferences: map[string]Preference{},
+			Preferences: map[string]*Preference{},
 		}
 		wallets = append(wallets, newWallet)
 	}

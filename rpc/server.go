@@ -1074,8 +1074,9 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 
 		preference, hasPreference := walletObj.Preferences[keyString]
-		if !hasPreference {
-			preference = wallet.Preference{}
+		if !hasPreference || preference == nil {
+			preference = &wallet.Preference{}
+			walletObj.Preferences[keyString] = preference
 		}
 		preference.SetNewValue(value)
 

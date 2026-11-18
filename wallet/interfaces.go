@@ -19,7 +19,7 @@ type Wallet struct {
 	ID          string
 	Name        string
 	Accounts    []Account
-	Preferences map[string]Preference
+	Preferences map[string]*Preference
 
 	locked    bool
 	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
