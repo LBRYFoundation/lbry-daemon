@@ -84,11 +84,19 @@ func (account *Account) Decrypt(password string) error {
 	var decryptedPrivateKey string
 
 	if account.Seed != "" {
-		decryptedSeed, _ = crypt.Decrypt(password, account.Seed)
+		var err error
+		decryptedSeed, err = crypt.Decrypt(password, account.Seed)
+		if err != nil {
+			return err
+		}
 	}
 
 	if account.PrivateKey != "" {
-		decryptedPrivateKey, _ = crypt.Decrypt(password, account.PrivateKey)
+		var err error
+		decryptedPrivateKey, err = crypt.Decrypt(password, account.PrivateKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	account.Seed = decryptedSeed
