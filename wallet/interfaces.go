@@ -2,7 +2,7 @@ package wallet
 
 import "errors"
 import "lbry/daemon/auth"
-import "lbry/daemon/crypt"
+import "lbry/daemon/crypto"
 
 type WalletManager interface {
 	List(user *auth.User) []Wallet
@@ -61,13 +61,13 @@ func (account *Account) Encrypt(password string) error {
 
 	if account.Seed != "" {
 		// TODO Cache Initialization Vector
-		iv, _ := crypt.NewIV()
-		encryptedSeed = crypt.Encrypt(password, account.Seed, iv[:])
+		iv, _ := crypto.NewIV()
+		encryptedSeed = crypto.Encrypt(password, account.Seed, iv[:])
 	}
 	if account.PrivateKey != "" {
 		// TODO Cache Initialization Vector
-		iv, _ := crypt.NewIV()
-		encryptedPrivateKey = crypt.Encrypt(password, account.PrivateKey, iv[:])
+		iv, _ := crypto.NewIV()
+		encryptedPrivateKey = crypto.Encrypt(password, account.PrivateKey, iv[:])
 	}
 
 	account.Seed = encryptedSeed
@@ -85,7 +85,7 @@ func (account *Account) Decrypt(password string) error {
 
 	if account.Seed != "" {
 		var err error
-		decryptedSeed, err = crypt.Decrypt(password, account.Seed)
+		decryptedSeed, err = crypto.Decrypt(password, account.Seed)
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ func (account *Account) Decrypt(password string) error {
 
 	if account.PrivateKey != "" {
 		var err error
-		decryptedPrivateKey, err = crypt.Decrypt(password, account.PrivateKey)
+		decryptedPrivateKey, err = crypto.Decrypt(password, account.PrivateKey)
 		if err != nil {
 			return err
 		}

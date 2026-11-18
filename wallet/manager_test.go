@@ -5,7 +5,7 @@ import "os"
 import "path/filepath"
 import "testing"
 
-import "lbry/daemon/crypt"
+import "lbry/daemon/crypto"
 
 var testIV = []byte("0123456789abcdef")
 
@@ -25,8 +25,8 @@ func fixture(t *testing.T) WalletManager {
 	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
 	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []Account{{
 		Name: "enc", Encrypted: true,
-		Seed:       crypt.Encrypt("hunter2", "seed words", testIV),
-		PrivateKey: crypt.Encrypt("hunter2", "xprv-secret", testIV),
+		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
+		PrivateKey: crypto.Encrypt("hunter2", "xprv-secret", testIV),
 	}}})
 	os.WriteFile(filepath.Join(dir, "junk"), []byte("not json"), 0o600)
 	manager := NewDefaultWalletManager(dir)
@@ -112,8 +112,8 @@ func TestUnlockRetainsDecryptedMaterialUntilLock(t *testing.T) {
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
 	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []Account{
-		{Encrypted: true, Seed: crypt.Encrypt("pw", "seed one", testIV), PrivateKey: crypt.Encrypt("pw", "key one", testIV)},
-		{Encrypted: true, Seed: crypt.Encrypt("other", "seed two", testIV), PrivateKey: crypt.Encrypt("other", "key two", testIV)},
+		{Encrypted: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
+		{Encrypted: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
 	}})
 	manager := NewDefaultWalletManager(dir)
 	manager.(*DefaultWalletManager).Load()

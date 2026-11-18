@@ -1,4 +1,4 @@
-package crypt
+package crypto
 
 import "testing"
 
@@ -13,7 +13,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// Produced by lbry-sdk's lbry.crypto.crypt.aes_encrypt("hunter2", "seed words", iv=b"0123456789abcdef").
+// Produced by lbry-sdk's lbry.crypto.crypto.aes_encrypt("hunter2", "seed words", iv=b"0123456789abcdef").
 func TestPythonVector(t *testing.T) {
 	out, err := Decrypt("hunter2", "MDEyMzQ1Njc4OWFiY2RlZoNseIwLAkeUPKSB6Wmt4vU=")
 	if err != nil || out != "seed words" {

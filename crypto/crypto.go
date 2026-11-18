@@ -1,5 +1,4 @@
-// Package crypt ports lbry-sdk's lbry/crypto/crypt.py.
-package crypt
+package crypto
 
 import "crypto/aes"
 import "crypto/cipher"
@@ -11,7 +10,7 @@ import "errors"
 // ErrInvalidPassword is returned when a value cannot be decrypted with the given password.
 var ErrInvalidPassword = errors.New("invalid password")
 
-// Decrypt mirrors lbry-sdk's lbry.crypto.crypt.aes_decrypt: the key is the
+// Decrypt mirrors lbry-sdk's lbry.crypto.crypto.aes_decrypt: the key is the
 // double SHA-256 of the password and the value is base64(iv || AES-256-CBC(PKCS7(data))).
 func Decrypt(password string, value string) (string, error) {
 	data, err := base64.StdEncoding.DecodeString(value)
