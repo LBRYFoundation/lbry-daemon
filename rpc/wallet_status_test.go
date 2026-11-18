@@ -10,7 +10,7 @@ import (
 
 	"lbry/daemon/auth"
 	"lbry/daemon/blob"
-	"lbry/daemon/crypt"
+	"lbry/daemon/crypto"
 	"lbry/daemon/settings"
 	"lbry/daemon/wallet"
 )
@@ -20,7 +20,7 @@ func walletStatus(t *testing.T, body string, userAgent string) (int, map[string]
 	dir := t.TempDir()
 	plain, _ := json.Marshal(wallet.WalletFile{Name: "My Wallet", Accounts: []wallet.Account{{Name: "plain", Seed: "seed words"}}})
 	secret, _ := json.Marshal(wallet.WalletFile{Name: "Secret", Accounts: []wallet.Account{{
-		Name: "enc", Encrypted: true, Seed: crypt.Encrypt("hunter2", "seed words", []byte("0123456789abcdef")),
+		Name: "enc", Locked: true, Seed: crypto.Encrypt("hunter2", "seed words", []byte("0123456789abcdef")),
 	}}})
 	os.WriteFile(filepath.Join(dir, "default_wallet"), plain, 0o600)
 	os.WriteFile(filepath.Join(dir, "secret"), secret, 0o600)
@@ -28,7 +28,7 @@ func walletStatus(t *testing.T, body string, userAgent string) (int, map[string]
 	if err := manager.(*wallet.DefaultWalletManager).Load(); err != nil {
 		t.Fatal(err)
 	}
-	server := NewRPCServer(settings.InitializeConfiguration(), &auth.AuthManager{}, &blob.BlobManager{}, nil, manager)
+	server := NewRPCServer(settings.InitializeConfiguration(), &auth.DefaultAuthManager{}, &blob.BlobManager{}, nil, manager)
 
 	req := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	if userAgent != "" {

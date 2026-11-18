@@ -24,7 +24,7 @@ func fixture(t *testing.T) WalletManager {
 	dir := t.TempDir()
 	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
 	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []Account{{
-		Name: "enc", Encrypted: true,
+		Name: "enc", Locked: true,
 		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
 		PrivateKey: crypto.Encrypt("hunter2", "xprv-secret", testIV),
 	}}})
@@ -90,19 +90,19 @@ func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 	account := &manager.(*DefaultWalletManager).find("secret").Accounts[0]
 	original := account.Seed
 
-	if manager.Unlock(nil, "secret", "wrong"); !account.Encrypted || account.Seed != original {
+	if manager.Unlock(nil, "secret", "wrong"); !account.Locked || account.Seed != original {
 		t.Fatal("a failed unlock must leave the account as it was")
 	}
 	if !manager.Unlock(nil, "secret", "hunter2") {
 		t.Fatal("unlock failed")
 	}
-	if account.Encrypted || account.Seed != "seed words" || account.PrivateKey != "xprv-secret" {
+	if account.Locked || account.Seed != "seed words" || account.PrivateKey != "xprv-secret" {
 		t.Fatalf("account not decrypted: %+v", account)
 	}
 	if !manager.Lock(nil, "secret") {
 		t.Fatal("lock failed")
 	}
-	if !account.Encrypted || account.Seed == "seed words" || account.PrivateKey == "xprv-secret" {
+	if !account.Locked || account.Seed == "seed words" || account.PrivateKey == "xprv-secret" {
 		t.Fatal("lock must encrypt the account again")
 	}
 	if !manager.Unlock(nil, "secret", "hunter2") || account.Seed != "seed words" {
@@ -113,15 +113,15 @@ func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
 	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []Account{
-		{Encrypted: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
-		{Encrypted: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
+		{Locked: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
+		{Locked: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
 	}})
 	manager := NewDefaultWalletManager(dir)
 	manager.(*DefaultWalletManager).Load()
 	if manager.Unlock(nil, "two", "pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
-	if first := manager.(*DefaultWalletManager).find("two").Accounts[0]; !first.Encrypted {
+	if first := manager.(*DefaultWalletManager).find("two").Accounts[0]; !first.Locked {
 		t.Fatalf("first account was left decrypted: %q", first.Seed)
 	}
 }
