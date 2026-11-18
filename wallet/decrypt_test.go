@@ -3,15 +3,15 @@ package wallet
 import (
 	"testing"
 
-	"lbry/daemon/crypt"
+	"lbry/daemon/crypto"
 )
 
 func TestAccountDecrypt(t *testing.T) {
 	encrypted := func() Account {
 		return Account{
 			Encrypted:  true,
-			Seed:       crypt.Encrypt("pw", "seed words", testIV),
-			PrivateKey: crypt.Encrypt("pw", "xprv-key", testIV),
+			Seed:       crypto.Encrypt("pw", "seed words", testIV),
+			PrivateKey: crypto.Encrypt("pw", "xprv-key", testIV),
 		}
 	}
 
@@ -22,10 +22,10 @@ func TestAccountDecrypt(t *testing.T) {
 
 	// Each part that does not decrypt is an error, and the account is left as it was.
 	wrongSeed := encrypted()
-	wrongSeed.Seed = crypt.Encrypt("other", "seed words", testIV)
+	wrongSeed.Seed = crypto.Encrypt("other", "seed words", testIV)
 	// The private key alone does not decrypt: the seed does, so only the second check can catch it.
 	wrongKey := encrypted()
-	wrongKey.PrivateKey = crypt.Encrypt("other", "xprv-key", testIV)
+	wrongKey.PrivateKey = crypto.Encrypt("other", "xprv-key", testIV)
 	for name, account := range map[string]Account{"seed": wrongSeed, "private key": wrongKey} {
 		before := account
 		if err := account.Decrypt("pw"); err == nil {
