@@ -17,8 +17,8 @@ import (
 func walletStatus(t *testing.T, body string, userAgent string) (int, map[string]any) {
 	t.Helper()
 	dir := t.TempDir()
-	plain, _ := json.Marshal(wallet.WalletFile{Name: "My Wallet", Accounts: []wallet.Account{{Name: "plain", Seed: "seed words"}}})
-	secret, _ := json.Marshal(wallet.WalletFile{Name: "Secret", Accounts: []wallet.Account{{
+	plain, _ := json.Marshal(wallet.WalletFile{Name: "My Wallet", Accounts: []*wallet.Account{{Name: "plain", Seed: "seed words"}}})
+	secret, _ := json.Marshal(wallet.WalletFile{Name: "Secret", Accounts: []*wallet.Account{{
 		Name: "enc", Locked: true, Seed: crypto.Encrypt("hunter2", "seed words", []byte("0123456789abcdef")),
 	}}})
 	os.WriteFile(filepath.Join(dir, "default_wallet"), plain, 0o600)

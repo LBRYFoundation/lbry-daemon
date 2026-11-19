@@ -308,31 +308,48 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 		if !paramsMapOk {
 			paramsMap = map[string]any{}
 		}
-		found, ok := getWalletParameter(rpcServer, w, user, paramsMap)
-		if !ok {
+		walletID, hasWalletID := paramsMap["wallet_id"]
+		if !hasWalletID {
+			walletID = "default_wallet"
+		}
+		accountID, hasAccountID := paramsMap["account_id"]
+		walletIDString, walletIDIsString := walletID.(string)
+		if !walletIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
 			return
 		}
-		showSeed, _ := paramsMap["show_seed"].(bool)
 
-		if accountID, hasAccountID := paramsMap["account_id"]; hasAccountID && accountID != nil {
+		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
+			return
+		}
+
+		showSeed, err := GetBooleanParameter(paramsMap, "show_seed")
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
+		if hasAccountID {
 			accountIDString, accountIDIsString := accountID.(string)
 			if !accountIDIsString {
 				sendErrorResponse(w, 400, "Parameter 'account_id' not of type string.")
 				return
 			}
-			for _, account := range found.Accounts {
-				if account.ID == accountIDString {
-					// lbry-sdk: paginate_list([account], 1, 1), whatever page arguments were given.
-					sendResultResponse(w, Paginate([]any{accountDetails(*account, showSeed)}, 1, 1).ToMap())
-					return
-				}
+
+			accountObj := walletObj.GetAccountByID(accountIDString)
+			if accountObj == nil {
+				sendErrorResponse(w, 400, "Account does not exist.")
+				return
 			}
-			sendErrorResponse(w, 400, "Couldn't find account: "+accountIDString+".")
+
+			sendResultResponse(w, Paginate([]any{accountDetails(*accountObj, showSeed)}, 1, 1).ToMap())
 			return
 		}
 
 		items := []any{}
-		for i, account := range found.Accounts {
+		for i, account := range walletObj.Accounts {
 			details := accountDetails(*account, showSeed)
 			details["is_default"] = i == 0
 			items = append(items, details)
@@ -2114,19 +2131,6 @@ func getWalletIDParameter(w http.ResponseWriter, paramsMap map[string]any) (stri
 		return "", false
 	}
 	return walletIDString, true
-}
-
-func getWalletParameter(rpcServer *RPCServer, w http.ResponseWriter, user *auth.User, paramsMap map[string]any) (*wallet.Wallet, bool) {
-	walletID, ok := getWalletIDParameter(w, paramsMap)
-	if !ok {
-		return nil, false
-	}
-	found := rpcServer.walletManager.Get(user, walletID)
-	if found == nil {
-		sendErrorResponse(w, 400, "Wallet does not exist.")
-		return nil, false
-	}
-	return found, true
 }
 
 // accountDetails is lbry-sdk's Account.get_details. The balance needs the wallet-server client, so it

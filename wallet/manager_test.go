@@ -23,8 +23,8 @@ func writeWallet(t *testing.T, dir, file string, data WalletFile) {
 
 func fixture(t *testing.T) WalletManager {
 	dir := t.TempDir()
-	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
-	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []Account{{
+	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
+	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []*Account{{
 		Name: "enc", Locked: true,
 		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
 		PrivateKey: crypto.Encrypt("hunter2", "xprv-secret", testIV),
@@ -88,7 +88,7 @@ func TestLockStateThroughPublicAPI(t *testing.T) {
 
 func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 	manager := fixture(t)
-	account := &manager.(*DefaultWalletManager).Get(nil, "secret").Accounts[0]
+	account := manager.(*DefaultWalletManager).Get(nil, "secret").Accounts[0]
 	original := account.Seed
 
 	if manager.Unlock(nil, "secret", "wrong"); !account.Locked || account.Seed != original {
@@ -113,7 +113,7 @@ func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []Account{
+	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []*Account{
 		{Locked: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
 		{Locked: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
 	}})
