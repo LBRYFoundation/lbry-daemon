@@ -309,16 +309,18 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 			paramsMap = map[string]any{}
 		}
 
-		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, "default_wallet")
+		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
+			return
 		}
 		accountID, err := GetStringParameter(paramsMap, "account_id", false, "")
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
+			return
 		}
 
-		walletObj := rpcServer.walletManager.Get(user, walletID)
+		walletObj := rpcServer.walletManager.Read(user, walletID)
 		if walletObj == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
@@ -394,16 +396,18 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			return
 		}
 
-		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, "default_wallet")
+		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
+			return
 		}
 		accountID, err := GetStringParameter(paramsMap, "account_id", true, "")
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
+			return
 		}
 
-		walletObj := rpcServer.walletManager.Get(user, walletID)
+		walletObj := rpcServer.walletManager.Read(user, walletID)
 		if walletObj == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
@@ -444,7 +448,14 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			*target = &integer
 		}
 
+		updateOk := rpcServer.walletManager.Update(user, walletObj)
+		if !updateOk {
+			sendErrorResponse(w, 400, "Failed updating wallet.")
+			return
+		}
+
 		details := accountDetails(*accountObj, true)
+
 		result := map[string]any{
 			"id":                details["id"],
 			"name":              details["name"],
@@ -1098,7 +1109,7 @@ func handleJSONRPCMessagePreferenceGet(rpcServer *RPCServer, w http.ResponseWrit
 			return
 		}
 
-		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		walletObj := rpcServer.walletManager.Read(user, walletIDString)
 		if walletObj == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
@@ -1169,7 +1180,7 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 		valueString, valueIsString := value.(string)
 
-		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		walletObj := rpcServer.walletManager.Read(user, walletIDString)
 		if walletObj == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
@@ -1194,9 +1205,9 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 		preference.SetNewValue(value)
 
-		err := walletObj.Save()
-		if err != nil {
-			sendErrorResponse(w, 400, err.Error())
+		updateOk := rpcServer.walletManager.Update(user, walletObj)
+		if !updateOk {
+			sendErrorResponse(w, 400, "Failed updating wallet.")
 			return
 		}
 
@@ -1888,7 +1899,7 @@ func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter,
 			paramsMap = map[string]any{}
 		}
 
-		wallets := rpcServer.walletManager.List(user)
+		wallets := rpcServer.walletManager.ReadList(user)
 
 		singleWallet := false
 		if walletID, hasWalletID := paramsMap["wallet_id"]; hasWalletID {
@@ -1898,12 +1909,12 @@ func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter,
 				sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
 				return
 			}
-			found := rpcServer.walletManager.Get(user, walletIDString)
+			found := rpcServer.walletManager.Read(user, walletIDString)
 			if found == nil {
 				sendErrorResponse(w, 400, "Wallet does not exist.")
 				return
 			}
-			wallets = []wallet.Wallet{*found}
+			wallets = []*wallet.Wallet{found}
 		}
 
 		walletMaps := []any{}
@@ -1945,12 +1956,12 @@ func handleJSONRPCMessageWalletLock(rpcServer *RPCServer, w http.ResponseWriter,
 			return
 		}
 
-		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		wallet := rpcServer.walletManager.Read(user, walletIDString)
 		if wallet == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
-		ok := rpcServer.walletManager.Lock(user, walletIDString)
+		ok := rpcServer.walletManager.Read(user, walletIDString).Lock()
 
 		sendResultResponse(w, ok)
 		return
@@ -1987,12 +1998,12 @@ func handleJSONRPCMessageWalletRemove(rpcServer *RPCServer, w http.ResponseWrite
 			return
 		}
 
-		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		wallet := rpcServer.walletManager.Read(user, walletIDString)
 		if wallet == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
-		rpcServer.walletManager.Remove(user, walletIDString)
+		rpcServer.walletManager.Delete(user, walletIDString)
 
 		sendResultResponse(w, map[string]any{
 			"id":   wallet.ID,
@@ -2038,7 +2049,7 @@ func handleJSONRPCMessageWalletStatus(rpcServer *RPCServer, w http.ResponseWrite
 			return
 		}
 
-		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		wallet := rpcServer.walletManager.Read(user, walletIDString)
 		if wallet == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
@@ -2082,12 +2093,12 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 			return
 		}
 
-		wallet := rpcServer.walletManager.Get(user, walletIDString)
+		wallet := rpcServer.walletManager.Read(user, walletIDString)
 		if wallet == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
-		ok := rpcServer.walletManager.Unlock(user, walletIDString, passwordString)
+		ok := rpcServer.walletManager.Read(user, walletIDString).Unlock(passwordString)
 
 		sendResultResponse(w, ok)
 		return

@@ -3,6 +3,7 @@ package wallet
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"lbry/daemon/auth"
 	"os"
 	"path/filepath"
@@ -78,15 +79,11 @@ func (walletManager *DefaultWalletManager) Load() error {
 	return nil
 }
 
-func (walletManager *DefaultWalletManager) List(user *auth.User) []Wallet {
-	result := make([]Wallet, 0, len(walletManager.wallets))
-	for _, wallet := range walletManager.wallets {
-		result = append(result, *wallet)
-	}
-	return result
+func (walletManager *DefaultWalletManager) Create(user *auth.User, wallet *Wallet) *Wallet {
+	return nil
 }
 
-func (walletManager *DefaultWalletManager) Get(user *auth.User, id string) *Wallet {
+func (walletManager *DefaultWalletManager) Read(user *auth.User, id string) *Wallet {
 	for _, wallet := range walletManager.wallets {
 		if wallet.ID == id {
 			return wallet
@@ -95,71 +92,21 @@ func (walletManager *DefaultWalletManager) Get(user *auth.User, id string) *Wall
 	return nil
 }
 
-func (walletManager *DefaultWalletManager) Remove(user *auth.User, id string) {
+func (walletManager *DefaultWalletManager) ReadList(user *auth.User) []*Wallet {
+	result := make([]*Wallet, 0)
+	for _, wallet := range walletManager.wallets {
+		result = append(result, wallet)
+	}
+	return result
+}
+
+func (walletManager *DefaultWalletManager) Update(user *auth.User, wallet *Wallet) bool {
+	fmt.Println(json.Marshal(wallet))
 	// TODO: Implement
+	return false
 }
 
-func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool {
-	walletManager.mutex.Lock()
-	defer walletManager.mutex.Unlock()
-	wallet := walletManager.Get(user, id)
-	if wallet == nil || wallet.password == "" {
-		return false
-	}
-
-	type pendingEncryption struct {
-		index   int
-		account *Account
-	}
-	pending := make([]pendingEncryption, 0, len(wallet.Accounts))
-	for i := range wallet.Accounts {
-		if wallet.Accounts[i].Locked {
-			continue
-		}
-		account := wallet.Accounts[i]
-		if err := account.Lock(wallet.password); err != nil {
-			return false
-		}
-		pending = append(pending, pendingEncryption{index: i, account: account})
-	}
-	for _, item := range pending {
-		wallet.Accounts[item.index] = item.account
-	}
-
-	wallet.locked = true
-	wallet.password = ""
-	return true
-}
-
-func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, password string) bool {
-	walletManager.mutex.Lock()
-	defer walletManager.mutex.Unlock()
-	wallet := walletManager.Get(user, id)
-	if wallet == nil {
-		return false
-	}
-
-	// Decrypt copies first so a wrong password leaves every account untouched.
-	type pendingDecryption struct {
-		index   int
-		account *Account
-	}
-	pending := make([]pendingDecryption, 0, len(wallet.Accounts))
-	for i := range wallet.Accounts {
-		if !wallet.Accounts[i].Locked {
-			continue
-		}
-		account := wallet.Accounts[i]
-		if err := account.Unlock(password); err != nil {
-			return false
-		}
-		pending = append(pending, pendingDecryption{index: i, account: account})
-	}
-	for _, item := range pending {
-		wallet.Accounts[item.index] = item.account
-	}
-
-	wallet.password = password
-	wallet.locked = false
-	return true
+func (walletManager *DefaultWalletManager) Delete(user *auth.User, id string) bool {
+	// TODO: Implement
+	return false
 }

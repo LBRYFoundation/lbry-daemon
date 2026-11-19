@@ -3,18 +3,25 @@ package wallet
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"lbry/daemon/auth"
 	"lbry/daemon/crypto"
 	"time"
 )
 
+const DEFAULT_WALLET = "default_wallet"
+
 type WalletManager interface {
-	List(user *auth.User) []Wallet
-	Get(user *auth.User, id string) *Wallet
-	Remove(user *auth.User, id string)
-	Lock(user *auth.User, id string) bool
-	Unlock(user *auth.User, id string, password string) bool
+	Create(*auth.User, *Wallet) *Wallet
+	Read(*auth.User, string) *Wallet
+	ReadList(*auth.User) []*Wallet
+	Update(*auth.User, *Wallet) bool
+	Delete(*auth.User, string) bool
+
+	// List(user *auth.User) []Wallet
+	// Get(user *auth.User, id string) *Wallet
+	// Remove(user *auth.User, id string)
+	// Lock(user *auth.User, id string) bool
+	// Unlock(user *auth.User, id string, password string) bool
 }
 
 var ErrWalletNotFound = errors.New("Wallet does not exist.")
@@ -44,17 +51,22 @@ func (wallet *Wallet) IsEncrypted() bool {
 	return wallet.encrypted
 }
 
+func (wallet *Wallet) Lock() bool {
+	// NO-OP
+	return false
+}
+
+func (wallet *Wallet) Unlock(password string) bool {
+	// NO-OP
+	return false
+}
+
 func (wallet *Wallet) IsLocked() bool {
 	return wallet.locked
 }
 
 func (wallet *Wallet) IsSyncing() bool {
 	return false
-}
-
-func (wallet *Wallet) Save() error {
-	fmt.Println(json.Marshal(wallet))
-	return errors.New("Failed saving wallet.")
 }
 
 func (wallet *Wallet) GetAccountByID(id string) *Account {

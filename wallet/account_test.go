@@ -111,7 +111,7 @@ func TestSetAccountRenamesAndKeepsEverythingElse(t *testing.T) {
 		first["encrypted"] != true || first["certificates"] == nil || first["ledger"] != "lbc_mainnet" {
 		t.Errorf("account fields lost or wrong: %v", first)
 	}
-	if got := manager.Get(nil, "raw").Accounts[0].Name; got != "renamed" {
+	if got := manager.Read(nil, "raw").Accounts[0].Name; got != "renamed" {
 		t.Errorf("in-memory name %q", got)
 	}
 	if info, _ := os.Stat(path); info.Mode().Perm() != 0o600 {
@@ -122,7 +122,7 @@ func TestSetAccountRenamesAndKeepsEverythingElse(t *testing.T) {
 	}
 	// The file still loads, and the locked state is untouched.
 	again := NewDefaultWalletManager(filepath.Dir(path))
-	if err := again.(*DefaultWalletManager).Load(); err != nil || !again.Get(nil, "raw").IsLocked() {
+	if err := again.(*DefaultWalletManager).Load(); err != nil || !again.Read(nil, "raw").IsLocked() {
 		t.Errorf("reload failed: %v", err)
 	}
 }
@@ -158,7 +158,7 @@ func TestSetAccountDefaultMovesItFirst(t *testing.T) {
 	if accounts[0].(map[string]any)["name"] != "second" || accounts[1].(map[string]any)["name"] != "first" {
 		t.Errorf("accounts not reordered: %v", accounts)
 	}
-	if got := manager.Get(nil, "raw").Accounts; got[0].ID != idTwo || got[1].ID != idOne {
+	if got := manager.Read(nil, "raw").Accounts; got[0].ID != idTwo || got[1].ID != idOne {
 		t.Errorf("in-memory order not updated")
 	}
 	// Already the default: nothing changes, nothing is written.

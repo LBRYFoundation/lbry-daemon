@@ -39,18 +39,18 @@ func fixture(t *testing.T) WalletManager {
 
 func TestListAndGet(t *testing.T) {
 	manager := fixture(t)
-	list := manager.List(nil)
+	list := manager.ReadList(nil)
 	if len(list) != 2 || list[0].ID != "default_wallet" || list[0].Name != "My Wallet" || list[1].ID != "secret" {
 		t.Fatalf("unexpected list: %+v", list)
 	}
-	if manager.Get(nil, "secret") == nil || manager.Get(nil, "missing") != nil {
+	if manager.Read(nil, "secret") == nil || manager.Read(nil, "missing") != nil {
 		t.Fatal("Get returned the wrong result")
 	}
 }
 
 func TestMissingDirectory(t *testing.T) {
 	manager := NewDefaultWalletManager(filepath.Join(t.TempDir(), "nope"))
-	if err := manager.(*DefaultWalletManager).Load(); err != nil || len(manager.List(nil)) != 0 {
+	if err := manager.(*DefaultWalletManager).Load(); err != nil || len(manager.ReadList(nil)) != 0 {
 		t.Fatalf("expected empty manager, got %v %v", manager, err)
 	}
 }
@@ -59,54 +59,54 @@ func TestMissingDirectory(t *testing.T) {
 // for an encrypted wallet that has never been unlocked.
 func TestLockStateThroughPublicAPI(t *testing.T) {
 	manager := fixture(t)
-	if !manager.Get(nil, "secret").IsLocked() {
+	if !manager.Read(nil, "secret").IsLocked() {
 		t.Fatal("encrypted wallet must report locked before any unlock")
 	}
-	if manager.Get(nil, "default_wallet").IsLocked() {
+	if manager.Read(nil, "default_wallet").IsLocked() {
 		t.Fatal("unencrypted wallet must not report locked")
 	}
-	if list := manager.List(nil); list[0].IsLocked() || !list[1].IsLocked() {
+	if list := manager.ReadList(nil); list[0].IsLocked() || !list[1].IsLocked() {
 		t.Fatalf("List lost the lock state: %+v", list)
 	}
 
-	if manager.Unlock(nil, "secret", "wrong") {
+	if manager.Read(nil, "secret").Unlock("wrong") {
 		t.Fatal("unlocked with the wrong password")
 	}
-	if !manager.Get(nil, "secret").IsLocked() {
+	if !manager.Read(nil, "secret").IsLocked() {
 		t.Fatal("a failed unlock must leave the wallet locked")
 	}
-	if !manager.Unlock(nil, "secret", "hunter2") {
+	if !manager.Read(nil, "secret").Unlock("hunter2") {
 		t.Fatal("did not unlock with the right password")
 	}
-	if manager.Get(nil, "secret").IsLocked() {
+	if manager.Read(nil, "secret").IsLocked() {
 		t.Fatal("wallet still locked after unlock")
 	}
-	if !manager.Lock(nil, "secret") || !manager.Get(nil, "secret").IsLocked() {
+	if !manager.Read(nil, "secret").Lock() || !manager.Read(nil, "secret").IsLocked() {
 		t.Fatal("lock failed")
 	}
 }
 
 func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 	manager := fixture(t)
-	account := manager.(*DefaultWalletManager).Get(nil, "secret").Accounts[0]
+	account := manager.(*DefaultWalletManager).Read(nil, "secret").Accounts[0]
 	original := account.Seed
 
-	if manager.Unlock(nil, "secret", "wrong"); !account.Locked || account.Seed != original {
+	if manager.Read(nil, "secret").Unlock("wrong"); !account.Locked || account.Seed != original {
 		t.Fatal("a failed unlock must leave the account as it was")
 	}
-	if !manager.Unlock(nil, "secret", "hunter2") {
+	if !manager.Read(nil, "secret").Unlock("hunter2") {
 		t.Fatal("unlock failed")
 	}
 	if account.Locked || account.Seed != "seed words" || account.PrivateKey != "xprv-secret" {
 		t.Fatalf("account not decrypted: %+v", account)
 	}
-	if !manager.Lock(nil, "secret") {
+	if !manager.Read(nil, "secret").Lock() {
 		t.Fatal("lock failed")
 	}
 	if !account.Locked || account.Seed == "seed words" || account.PrivateKey == "xprv-secret" {
 		t.Fatal("lock must encrypt the account again")
 	}
-	if !manager.Unlock(nil, "secret", "hunter2") || account.Seed != "seed words" {
+	if !manager.Read(nil, "secret").Unlock("hunter2") || account.Seed != "seed words" {
 		t.Fatal("the locked account must unlock again with the same password")
 	}
 }
@@ -119,23 +119,23 @@ func TestUnlockIsAllOrNothing(t *testing.T) {
 	}})
 	manager := NewDefaultWalletManager(dir)
 	manager.(*DefaultWalletManager).Load()
-	if manager.Unlock(nil, "two", "pw") {
+	if manager.Read(nil, "two").Unlock("pw") {
 		t.Fatal("unlock must fail when one account does not decrypt")
 	}
-	if first := manager.(*DefaultWalletManager).Get(nil, "two").Accounts[0]; !first.Locked {
+	if first := manager.(*DefaultWalletManager).Read(nil, "two").Accounts[0]; !first.Locked {
 		t.Fatalf("first account was left decrypted: %q", first.Seed)
 	}
 }
 
 func TestUnencryptedAndMissingWallets(t *testing.T) {
 	manager := fixture(t)
-	if manager.Lock(nil, "default_wallet") {
+	if manager.Read(nil, "default_wallet").Lock() {
 		t.Fatal("locked an unencrypted wallet")
 	}
-	if !manager.Unlock(nil, "default_wallet", "anything") {
+	if !manager.Read(nil, "default_wallet").Unlock("anything") {
 		t.Fatal("unencrypted wallet should report unlocked")
 	}
-	if manager.Unlock(nil, "missing", "x") || manager.Lock(nil, "missing") {
+	if manager.Read(nil, "missing").Unlock("x") || manager.Read(nil, "missing").Lock() {
 		t.Fatal("operations on a missing wallet must fail")
 	}
 }
@@ -144,10 +144,10 @@ func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 	dir := t.TempDir()
 	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet"})
 	manager := NewDefaultWalletManager(dir)
-	if len(manager.List(nil)) != 0 {
+	if len(manager.ReadList(nil)) != 0 {
 		t.Fatal("NewDefaultWalletManager must not read the directory")
 	}
-	if err := manager.(*DefaultWalletManager).Load(); err != nil || len(manager.List(nil)) != 1 {
+	if err := manager.(*DefaultWalletManager).Load(); err != nil || len(manager.ReadList(nil)) != 1 {
 		t.Fatalf("Load did not pick up the wallet: %v", err)
 	}
 }
@@ -155,22 +155,22 @@ func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 // lbry-sdk Wallet.is_encrypted: the wallet is locked, or unlocked with a password.
 func TestIsEncrypted(t *testing.T) {
 	manager := fixture(t)
-	if manager.Get(nil, "default_wallet").IsEncrypted() {
+	if manager.Read(nil, "default_wallet").IsEncrypted() {
 		t.Fatal("an unencrypted wallet must not report encrypted")
 	}
-	if !manager.Get(nil, "secret").IsEncrypted() {
+	if !manager.Read(nil, "secret").IsEncrypted() {
 		t.Fatal("a locked wallet must report encrypted")
 	}
-	if manager.Unlock(nil, "secret", "wrong"); !manager.Get(nil, "secret").IsEncrypted() {
+	if manager.Read(nil, "secret").Unlock("wrong"); !manager.Read(nil, "secret").IsEncrypted() {
 		t.Fatal("a failed unlock leaves the wallet encrypted")
 	}
-	if !manager.Unlock(nil, "secret", "hunter2") || !manager.Get(nil, "secret").IsEncrypted() {
+	if !manager.Read(nil, "secret").Unlock("hunter2") || !manager.Read(nil, "secret").IsEncrypted() {
 		t.Fatal("a wallet unlocked with a password is still encrypted")
 	}
-	if !manager.Lock(nil, "secret") || !manager.Get(nil, "secret").IsEncrypted() {
+	if !manager.Read(nil, "secret").Lock() || !manager.Read(nil, "secret").IsEncrypted() {
 		t.Fatal("a locked wallet must report encrypted")
 	}
-	if list := manager.List(nil); list[0].IsEncrypted() || !list[1].IsEncrypted() {
+	if list := manager.ReadList(nil); list[0].IsEncrypted() || !list[1].IsEncrypted() {
 		t.Fatalf("List lost the encrypted state: %+v", list)
 	}
 }

@@ -17,7 +17,7 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 	walletManager.mutex.Lock()
 	defer walletManager.mutex.Unlock()
 
-	wallet := walletManager.Get(nil, walletID)
+	wallet := walletManager.Read(nil, walletID)
 	if wallet == nil {
 		return nil, ErrWalletNotFound
 	}
