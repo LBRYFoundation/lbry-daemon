@@ -23,7 +23,7 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 	}
 	index := -1
 	for i := range wallet.Accounts {
-		if wallet.Accounts[i].ID() == accountID {
+		if wallet.Accounts[i].ID == accountID {
 			index = i
 			break
 		}
@@ -85,7 +85,7 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 		changed = true
 	}
 	if !changed {
-		return &account, nil
+		return account, nil
 	}
 	account.ModifiedOn = float64(time.Now().Unix())
 
@@ -100,11 +100,11 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 	if account.AddressGenerator != nil {
 		patched["address_generator"] = account.AddressGenerator
 	}
-	updated := append([]Account{}, wallet.Accounts...)
+	updated := append([]*Account{}, wallet.Accounts...)
 	updated[index] = account
 	if moveToFront {
 		accounts = append([]map[string]json.RawMessage{accounts[index]}, append(accounts[:index:index], accounts[index+1:]...)...)
-		updated = append([]Account{updated[index]}, append(updated[:index:index], updated[index+1:]...)...)
+		updated = append([]*Account{updated[index]}, append(updated[:index:index], updated[index+1:]...)...)
 	}
 	file["accounts"], err = json.Marshal(accounts)
 	if err != nil {
@@ -118,7 +118,7 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 		return nil, err
 	}
 	wallet.Accounts = updated
-	return &account, nil
+	return account, nil
 }
 
 // writeFileAtomically writes next to the file and renames over it, keeping the file's permissions, so a

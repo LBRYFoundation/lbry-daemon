@@ -32,7 +32,7 @@ type AccountChange struct {
 type Wallet struct {
 	ID          string
 	Name        string
-	Accounts    []Account
+	Accounts    []*Account
 	Preferences map[string]*Preference
 
 	locked    bool
@@ -57,7 +57,17 @@ func (wallet *Wallet) Save() error {
 	return errors.New("Failed saving wallet.")
 }
 
+func (wallet *Wallet) GetAccountByID(id string) *Account {
+	for _, account := range wallet.Accounts {
+		if account.ID == id {
+			return account
+		}
+	}
+	return nil
+}
+
 type Account struct {
+	ID         string
 	Name       string `json:"name"`
 	Locked     bool   `json:"encrypted"`
 	Seed       string `json:"seed"`
@@ -133,11 +143,7 @@ func (preference *Preference) SetNewValue(value any) {
 	preference.Value = value
 }
 
-// ID is the account id: the address of its extended public key (lbry-sdk Account.id).
-func (account *Account) ID() string {
-	id, _ := AddressFromExtendedPublicKey(account.PublicKey)
-	return id
-}
+//	id, _ := AddressFromExtendedPublicKey(account.PublicKey)
 
 // AddressGeneratorName is the generator lbry-sdk uses when a wallet does not name one.
 const AddressGeneratorName = "deterministic-chain"

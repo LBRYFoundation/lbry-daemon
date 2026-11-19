@@ -11,8 +11,8 @@ import (
 )
 
 type WalletFile struct {
-	Name     string    `json:"name"`
-	Accounts []Account `json:"accounts"`
+	Name     string     `json:"name"`
+	Accounts []*Account `json:"accounts"`
 }
 
 type DefaultWalletManager struct {
@@ -109,7 +109,7 @@ func (walletManager *DefaultWalletManager) Lock(user *auth.User, id string) bool
 
 	type pendingEncryption struct {
 		index   int
-		account Account
+		account *Account
 	}
 	pending := make([]pendingEncryption, 0, len(wallet.Accounts))
 	for i := range wallet.Accounts {
@@ -142,7 +142,7 @@ func (walletManager *DefaultWalletManager) Unlock(user *auth.User, id string, pa
 	// Decrypt copies first so a wrong password leaves every account untouched.
 	type pendingDecryption struct {
 		index   int
-		account Account
+		account *Account
 	}
 	pending := make([]pendingDecryption, 0, len(wallet.Accounts))
 	for i := range wallet.Accounts {

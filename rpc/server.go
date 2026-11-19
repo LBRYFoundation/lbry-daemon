@@ -321,9 +321,9 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 				return
 			}
 			for _, account := range found.Accounts {
-				if account.ID() == accountIDString {
+				if account.ID == accountIDString {
 					// lbry-sdk: paginate_list([account], 1, 1), whatever page arguments were given.
-					sendResultResponse(w, Paginate([]any{accountDetails(account, showSeed)}, 1, 1).ToMap())
+					sendResultResponse(w, Paginate([]any{accountDetails(*account, showSeed)}, 1, 1).ToMap())
 					return
 				}
 			}
@@ -333,7 +333,7 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 
 		items := []any{}
 		for i, account := range found.Accounts {
-			details := accountDetails(account, showSeed)
+			details := accountDetails(*account, showSeed)
 			details["is_default"] = i == 0
 			items = append(items, details)
 		}
@@ -446,7 +446,7 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 		details := accountDetails(*account, true)
 		isDefault := false
 		if found := rpcServer.walletManager.Get(user, walletID); found != nil && len(found.Accounts) > 0 {
-			isDefault = found.Accounts[0].ID() == account.ID()
+			isDefault = found.Accounts[0].ID == account.ID
 		}
 		result := map[string]any{
 			"id":                details["id"],
@@ -2137,7 +2137,7 @@ func accountDetails(account wallet.Account, showSeed bool) map[string]any {
 		ledger = "lbc_mainnet"
 	}
 	details := map[string]any{
-		"id":                account.ID(),
+		"id":                account.ID,
 		"name":              account.Name,
 		"ledger":            ledger,
 		"coins":             0,

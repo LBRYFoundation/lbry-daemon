@@ -19,12 +19,12 @@ const (
 func TestAccountID(t *testing.T) {
 	for publicKey, want := range map[string]string{publicKeyOne: idOne, publicKeyTwo: idTwo} {
 		account := Account{PublicKey: publicKey}
-		if got := account.ID(); got != want {
-			t.Errorf("ID() = %q, want %q", got, want)
+		if got := account.ID; got != want {
+			t.Errorf("ID = %q, want %q", got, want)
 		}
 	}
 	for name, publicKey := range map[string]string{"empty": "", "not base58": "xpub0OIl", "bad checksum": publicKeyOne[:len(publicKeyOne)-1] + "a"} {
-		if got := (&Account{PublicKey: publicKey}).ID(); got != "" {
+		if got := (&Account{PublicKey: publicKey}).ID; got != "" {
 			t.Errorf("%s: expected no id, got %q", name, got)
 		}
 	}
@@ -158,7 +158,7 @@ func TestSetAccountDefaultMovesItFirst(t *testing.T) {
 	if accounts[0].(map[string]any)["name"] != "second" || accounts[1].(map[string]any)["name"] != "first" {
 		t.Errorf("accounts not reordered: %v", accounts)
 	}
-	if got := manager.Get(nil, "raw").Accounts; got[0].ID() != idTwo || got[1].ID() != idOne {
+	if got := manager.Get(nil, "raw").Accounts; got[0].ID != idTwo || got[1].ID != idOne {
 		t.Errorf("in-memory order not updated")
 	}
 	// Already the default: nothing changes, nothing is written.
