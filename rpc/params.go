@@ -1,7 +1,9 @@
 package rpc
 
-import "errors"
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 func HasParameter(params map[string]any, key string) bool {
 	_, hasParam := params[key]

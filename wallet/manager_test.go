@@ -23,7 +23,7 @@ func writeWallet(t *testing.T, dir, file string, data WalletFile) {
 
 func fixture(t *testing.T) WalletManager {
 	dir := t.TempDir()
-	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
+	writeWallet(t, dir, DEFAULT_WALLET, WalletFile{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
 	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []*Account{{
 		Name: "enc", Locked: true,
 		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
@@ -40,7 +40,7 @@ func fixture(t *testing.T) WalletManager {
 func TestListAndGet(t *testing.T) {
 	manager := fixture(t)
 	list := manager.ReadList(nil)
-	if len(list) != 2 || list[0].ID != "default_wallet" || list[0].Name != "My Wallet" || list[1].ID != "secret" {
+	if len(list) != 2 || list[0].ID != DEFAULT_WALLET || list[0].Name != "My Wallet" || list[1].ID != "secret" {
 		t.Fatalf("unexpected list: %+v", list)
 	}
 	if manager.Read(nil, "secret") == nil || manager.Read(nil, "missing") != nil {
@@ -62,7 +62,7 @@ func TestLockStateThroughPublicAPI(t *testing.T) {
 	if !manager.Read(nil, "secret").IsLocked() {
 		t.Fatal("encrypted wallet must report locked before any unlock")
 	}
-	if manager.Read(nil, "default_wallet").IsLocked() {
+	if manager.Read(nil, DEFAULT_WALLET).IsLocked() {
 		t.Fatal("unencrypted wallet must not report locked")
 	}
 	if list := manager.ReadList(nil); list[0].IsLocked() || !list[1].IsLocked() {
@@ -129,10 +129,10 @@ func TestUnlockIsAllOrNothing(t *testing.T) {
 
 func TestUnencryptedAndMissingWallets(t *testing.T) {
 	manager := fixture(t)
-	if manager.Read(nil, "default_wallet").Lock() {
+	if manager.Read(nil, DEFAULT_WALLET).Lock() {
 		t.Fatal("locked an unencrypted wallet")
 	}
-	if !manager.Read(nil, "default_wallet").Unlock("anything") {
+	if !manager.Read(nil, DEFAULT_WALLET).Unlock("anything") {
 		t.Fatal("unencrypted wallet should report unlocked")
 	}
 	if manager.Read(nil, "missing").Unlock("x") || manager.Read(nil, "missing").Lock() {
@@ -142,7 +142,7 @@ func TestUnencryptedAndMissingWallets(t *testing.T) {
 
 func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "default_wallet", WalletFile{Name: "My Wallet"})
+	writeWallet(t, dir, DEFAULT_WALLET, WalletFile{Name: "My Wallet"})
 	manager := NewDefaultWalletManager(dir)
 	if len(manager.ReadList(nil)) != 0 {
 		t.Fatal("NewDefaultWalletManager must not read the directory")
@@ -155,7 +155,7 @@ func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 // lbry-sdk Wallet.is_encrypted: the wallet is locked, or unlocked with a password.
 func TestIsEncrypted(t *testing.T) {
 	manager := fixture(t)
-	if manager.Read(nil, "default_wallet").IsEncrypted() {
+	if manager.Read(nil, DEFAULT_WALLET).IsEncrypted() {
 		t.Fatal("an unencrypted wallet must not report encrypted")
 	}
 	if !manager.Read(nil, "secret").IsEncrypted() {

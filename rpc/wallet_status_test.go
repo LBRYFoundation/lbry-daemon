@@ -21,7 +21,7 @@ func walletStatus(t *testing.T, body string, userAgent string) (int, map[string]
 	secret, _ := json.Marshal(wallet.WalletFile{Name: "Secret", Accounts: []*wallet.Account{{
 		Name: "enc", Locked: true, Seed: crypto.Encrypt("hunter2", "seed words", []byte("0123456789abcdef")),
 	}}})
-	os.WriteFile(filepath.Join(dir, "default_wallet"), plain, 0o600)
+	os.WriteFile(filepath.Join(dir, DEFAULT_WALLET), plain, 0o600)
 	os.WriteFile(filepath.Join(dir, "secret"), secret, 0o600)
 	manager := wallet.NewDefaultWalletManager(dir)
 	if err := manager.(*wallet.DefaultWalletManager).Load(); err != nil {

@@ -1100,7 +1100,7 @@ func handleJSONRPCMessagePreferenceGet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			walletID = "default_wallet"
+			walletID = wallet.DEFAULT_WALLET
 		}
 		key, hasKey := paramsMap["key"]
 		walletIDString, walletIDIsString := walletID.(string)
@@ -1156,7 +1156,7 @@ func handleJSONRPCMessagePreferenceSet(rpcServer *RPCServer, w http.ResponseWrit
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			walletID = "default_wallet"
+			walletID = wallet.DEFAULT_WALLET
 		}
 		key, hasKey := paramsMap["key"]
 		if !hasKey {
@@ -1948,7 +1948,7 @@ func handleJSONRPCMessageWalletLock(rpcServer *RPCServer, w http.ResponseWriter,
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			walletID = "default_wallet"
+			walletID = wallet.DEFAULT_WALLET
 		}
 		walletIDString, walletIDIsString := walletID.(string)
 		if !walletIDIsString {
@@ -2041,7 +2041,7 @@ func handleJSONRPCMessageWalletStatus(rpcServer *RPCServer, w http.ResponseWrite
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			walletID = "default_wallet"
+			walletID = wallet.DEFAULT_WALLET
 		}
 		walletIDString, walletIDIsString := walletID.(string)
 		if !walletIDIsString {
@@ -2085,7 +2085,7 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 		}
 		walletID, hasWalletID := paramsMap["wallet_id"]
 		if !hasWalletID {
-			walletID = "default_wallet"
+			walletID = wallet.DEFAULT_WALLET
 		}
 		walletIDString, walletIDIsString := walletID.(string)
 		if !walletIDIsString {
