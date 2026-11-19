@@ -340,19 +340,29 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 				return
 			}
 
-			sendResultResponse(w, Paginate([]any{accountDetails(*accountObj, showSeed)}, 1, 1).ToMap())
+			sendResultResponse(w, Paginate([]any{accountDetails(accountObj, showSeed)}, 1, 1).ToMap())
 			return
 		}
 
-		items := []any{}
-		for i, account := range walletObj.Accounts {
-			details := accountDetails(*account, showSeed)
-			details["is_default"] = i == 0
-			items = append(items, details)
+		page, err := GetIntegerParameter(paramsMap, "page", false, 1)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
 		}
-		page, _ := paramsMap["page"].(float64)
-		pageSize, _ := paramsMap["page_size"].(float64)
-		sendResultResponse(w, Paginate(items, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
+		pageSize, err := GetIntegerParameter(paramsMap, "page_size", false, 20)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
+		accountList := []any{}
+		for i, account := range walletObj.Accounts {
+			details := accountDetails(account, showSeed)
+			details["is_default"] = i == 0
+			accountList = append(accountList, details)
+		}
+
+		sendResultResponse(w, Paginate(accountList, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
 		return
 	}
 	handleUnauthorized(w)
@@ -422,6 +432,48 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 
 		madeChanges := false
 
+		if accountObj.AddressGenerator.Name == "deterministic-chain" {
+			if HasParameter(paramsMap, "change_gap") {
+				changeGap, err := GetIntegerParameter(paramsMap, "change_gap", true, -1)
+				if err != nil {
+					sendErrorResponse(w, 400, err.Error())
+					return
+				}
+				accountObj.AddressGenerator.Change.Gap = uint64(changeGap)
+				madeChanges = true
+			}
+
+			if HasParameter(paramsMap, "change_max_uses") {
+				changeMaxUses, err := GetIntegerParameter(paramsMap, "change_max_uses", true, -1)
+				if err != nil {
+					sendErrorResponse(w, 400, err.Error())
+					return
+				}
+				accountObj.AddressGenerator.Change.MaximumUsesPerAddress = uint64(changeMaxUses)
+				madeChanges = true
+			}
+
+			if HasParameter(paramsMap, "receiving_gap") {
+				receivingGap, err := GetIntegerParameter(paramsMap, "receiving_gap", true, -1)
+				if err != nil {
+					sendErrorResponse(w, 400, err.Error())
+					return
+				}
+				accountObj.AddressGenerator.Receiving.Gap = uint64(receivingGap)
+				madeChanges = true
+			}
+
+			if HasParameter(paramsMap, "receiving_max_uses") {
+				receivingMaxUses, err := GetIntegerParameter(paramsMap, "receiving_max_uses", true, -1)
+				if err != nil {
+					sendErrorResponse(w, 400, err.Error())
+					return
+				}
+				accountObj.AddressGenerator.Receiving.MaximumUsesPerAddress = uint64(receivingMaxUses)
+				madeChanges = true
+			}
+		}
+
 		if HasParameter(paramsMap, "new_name") {
 			newName, err := GetStringParameter(paramsMap, "new_name", true, "")
 			if err != nil {
@@ -451,25 +503,6 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 
 		}
 
-		// 		for key, target := range map[string]**int{
-		// 			"change_gap":         &change.ChangeGap,
-		// 			"change_max_uses":    &change.ChangeMaxUses,
-		// 			"receiving_gap":      &change.ReceivingGap,
-		// 			"receiving_max_uses": &change.ReceivingMaxUses,
-		// 		} {
-		// 			value, has := paramsMap[key]
-		// 			if !has || value == nil {
-		// 				continue
-		// 			}
-		// 			number, isNumber := value.(float64)
-		// 			if !isNumber || number != math.Trunc(number) || number < 0 || number > math.MaxInt32 {
-		// 				sendErrorResponse(w, 400, "Parameter '"+key+"' must be a non-negative integer.")
-		// 				return
-		// 			}
-		// 			integer := int(number)
-		// 			*target = &integer
-		// 		}
-
 		if madeChanges {
 			accountObj.ModifiedOn = time.Now().Unix()
 
@@ -480,7 +513,7 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			}
 		}
 
-		details := accountDetails(*accountObj, true)
+		details := accountDetails(accountObj, true)
 
 		result := map[string]any{
 			"id":                details["id"],
@@ -1941,19 +1974,28 @@ func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter,
 			return
 		}
 
+		page, err := GetIntegerParameter(paramsMap, "page", false, 1)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+		pageSize, err := GetIntegerParameter(paramsMap, "page_size", false, 20)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
 		wallets := rpcServer.walletManager.ReadList(user)
 
-		walletMaps := []any{}
+		walletList := []any{}
 		for _, item := range wallets {
-			walletMaps = append(walletMaps, map[string]any{
+			walletList = append(walletList, map[string]any{
 				"id":   item.ID,
 				"name": item.Name,
 			})
 		}
 
-		page, _ := paramsMap["page"].(float64)
-		pageSize, _ := paramsMap["page_size"].(float64)
-		sendResultResponse(w, Paginate(walletMaps, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
+		sendResultResponse(w, Paginate(walletList, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
 		return
 	}
 	handleUnauthorized(w)
@@ -2110,7 +2152,7 @@ func handleUnauthorized(w http.ResponseWriter) {
 
 // accountDetails is lbry-sdk's Account.get_details. The balance needs the wallet-server client, so it
 // is reported as 0 until that exists.
-func accountDetails(account wallet.Account, showSeed bool) map[string]any {
+func accountDetails(account *wallet.Account, showSeed bool) map[string]any {
 	ledger := account.Ledger
 	if ledger == "" {
 		ledger = "lbc_mainnet"
@@ -2123,7 +2165,7 @@ func accountDetails(account wallet.Account, showSeed bool) map[string]any {
 		"satoshis":          0,
 		"encrypted":         account.Locked,
 		"public_key":        account.PublicKey,
-		"address_generator": account.AddressGeneratorDetails(),
+		"address_generator": account.AddressGenerator,
 	}
 	if showSeed {
 		details["seed"] = account.Seed

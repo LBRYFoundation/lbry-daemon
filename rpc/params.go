@@ -48,6 +48,21 @@ func GetStringParameter(params map[string]any, key string, failOnMissing bool, d
 	return paramString, nil
 }
 
+func GetIntegerParameter(params map[string]any, key string, failOnMissing bool, defaultValue int64) (int64, error) {
+	param, err := GetParameter(params, key)
+	if err != nil {
+		if failOnMissing {
+			return defaultValue, err
+		}
+		return defaultValue, nil
+	}
+	paramString, paramIsString := param.(int64)
+	if !paramIsString {
+		return defaultValue, errors.New(fmt.Sprintf("Parameter '%s' not of type integer.", key))
+	}
+	return paramString, nil
+}
+
 func GetStringArrayParameter(params map[string]any, key string, failOnMissing bool, defaultValue []string) ([]string, error) {
 	param, err := GetParameter(params, key)
 	if err != nil {

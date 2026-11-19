@@ -84,9 +84,20 @@ type Account struct {
 	PublicKey  string `json:"public_key"`
 
 	Ledger           string                     `json:"ledger,omitempty"`
-	AddressGenerator json.RawMessage            `json:"address_generator,omitempty"`
+	AddressGenerator AddressGenerator           `json:"address_generator"`
 	ModifiedOn       int64                      `json:"modified_on,omitempty"`
 	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
+}
+
+type AddressGenerator struct {
+	Name      string                `json:"name"`
+	Change    AddressGeneratorChain `json:"change"`
+	Receiving AddressGeneratorChain `json:"receiving"`
+}
+
+type AddressGeneratorChain struct {
+	Gap                   uint64 `json:"gap"`
+	MaximumUsesPerAddress uint64 `json:"maximum_uses_per_address"`
 }
 
 func (account *Account) Lock(password string) error {
@@ -159,29 +170,29 @@ const AddressGeneratorName = "deterministic-chain"
 
 // AddressGeneratorDetails returns the account's address generator the way lbry-sdk reports it:
 // the name and, for the deterministic chain, the gap and maximum uses of both chains, filling in defaults.
-func (account *Account) AddressGeneratorDetails() map[string]any {
-	stored := map[string]any{}
-	if len(account.AddressGenerator) > 0 {
-		json.Unmarshal(account.AddressGenerator, &stored)
-	}
-	name, _ := stored["name"].(string)
-	if name == "" {
-		name = AddressGeneratorName
-	}
-	details := map[string]any{"name": name}
-	if name != AddressGeneratorName {
-		return details
-	}
-	for chain, defaultGap := range map[string]int{"receiving": 20, "change": 6} {
-		values := map[string]any{"gap": defaultGap, "maximum_uses_per_address": 1}
-		if given, ok := stored[chain].(map[string]any); ok {
-			for key := range values {
-				if value, ok := given[key]; ok {
-					values[key] = value
-				}
-			}
-		}
-		details[chain] = values
-	}
-	return details
-}
+// func (account *Account) AddressGeneratorDetails() map[string]any {
+// 	stored := map[string]any{}
+// 	if len(account.AddressGenerator) > 0 {
+// 		json.Unmarshal(account.AddressGenerator, &stored)
+// 	}
+// 	name, _ := stored["name"].(string)
+// 	if name == "" {
+// 		name = AddressGeneratorName
+// 	}
+// 	details := map[string]any{"name": name}
+// 	if name != AddressGeneratorName {
+// 		return details
+// 	}
+// 	for chain, defaultGap := range map[string]int{"receiving": 20, "change": 6} {
+// 		values := map[string]any{"gap": defaultGap, "maximum_uses_per_address": 1}
+// 		if given, ok := stored[chain].(map[string]any); ok {
+// 			for key := range values {
+// 				if value, ok := given[key]; ok {
+// 					values[key] = value
+// 				}
+// 			}
+// 		}
+// 		details[chain] = values
+// 	}
+// 	return details
+// }

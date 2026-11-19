@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccountDetails(t *testing.T) {
-	account := wallet.Account{
+	account := &wallet.Account{
 		Name: "main", Locked: true, Seed: "enc-seed", PublicKey: "not a key",
 		Certificates: map[string]json.RawMessage{"a": nil, "b": nil},
 	}
