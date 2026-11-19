@@ -432,7 +432,7 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 
 		madeChanges := false
 
-		if accountObj.AddressGenerator.Name == "deterministic-chain" {
+		if accountObj.AddressGenerator.Name == wallet.ADDRESS_GENERATOR_NAME_DETERMINISTIC_CHAIN {
 			if HasParameter(paramsMap, "change_gap") {
 				changeGap, err := GetIntegerParameter(paramsMap, "change_gap", true, -1)
 				if err != nil {
@@ -480,8 +480,10 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 				sendErrorResponse(w, 400, err.Error())
 				return
 			}
-			accountObj.Name = newName
-			madeChanges = true
+			if accountObj.Name != newName {
+				accountObj.Name = newName
+				madeChanges = true
+			}
 		}
 
 		defaultBool, err := GetBooleanParameter(paramsMap, "default", false, false)
@@ -1309,14 +1311,33 @@ func handleJSONRPCMessageResolve(rpcServer *RPCServer, w http.ResponseWriter, re
 		return
 	}
 
-	// TODO: Check if "urls" is string or string array.
-	sendUrls := urls.([]any)
+	urlArray := []string{}
+
+	urlsString, urlsIsString := urls.(string)
+	urlsArray, urlsIsArray := urls.([]any)
+	if !urlsIsString && !urlsIsArray {
+		sendErrorResponse(w, 400, fmt.Sprintf("Parameter '%s' not of type string or string array.", "urls"))
+		return
+	}
+	if urlsIsString {
+		urlArray = append(urlArray, urlsString)
+	}
+	if urlsIsArray {
+		for _, url := range urlsArray {
+			urlString, urlsIsString := url.(string)
+			if !urlsIsString {
+				sendErrorResponse(w, 400, fmt.Sprintf("Parameter '%s' not of type string or string array.", "urls"))
+				return
+			}
+			urlArray = append(urlArray, urlString)
+		}
+	}
 
 	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.resolve",
-		"params":  sendUrls,
+		"params":  urlArray,
 	})
 
 	var resolutions map[string]any = map[string]any{}
@@ -1366,7 +1387,7 @@ func handleJSONRPCMessageResolve(rpcServer *RPCServer, w http.ResponseWriter, re
 			if ok {
 				item := convertProtobufToClaim(claimMap, transactionData)
 
-				resolutionKey := sendUrls[index].(string)
+				resolutionKey := urlArray[index]
 				resolutions[resolutionKey] = item
 			}
 

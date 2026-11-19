@@ -10,6 +10,9 @@ import (
 
 const DEFAULT_WALLET = "default_wallet"
 
+const ADDRESS_GENERATOR_NAME_DETERMINISTIC_CHAIN = "deterministic-chain"
+const ADDRESS_GENERATOR_NAME_SINGLE_ADDRESS = "single-address"
+
 type WalletManager interface {
 	Create(*auth.User, *Wallet) *Wallet
 	Read(*auth.User, string) *Wallet
@@ -17,14 +20,9 @@ type WalletManager interface {
 	Update(*auth.User, *Wallet) bool
 	Delete(*auth.User, string) bool
 
-	// List(user *auth.User) []Wallet
-	// Get(user *auth.User, id string) *Wallet
-	// Remove(user *auth.User, id string)
 	// Lock(user *auth.User, id string) bool
 	// Unlock(user *auth.User, id string, password string) bool
 }
-
-var ErrWalletNotFound = errors.New("Wallet does not exist.")
 
 type Wallet struct {
 	ID          string
@@ -76,7 +74,7 @@ func (wallet *Wallet) GetAccountByID(id string) *Account {
 }
 
 type Account struct {
-	ID         string
+	ID         string `json:"-"`
 	Name       string `json:"name"`
 	Locked     bool   `json:"encrypted"`
 	Seed       string `json:"seed"`
@@ -166,7 +164,6 @@ func (preference *Preference) SetNewValue(value any) {
 //	id, _ := AddressFromExtendedPublicKey(account.PublicKey)
 
 // AddressGeneratorName is the generator lbry-sdk uses when a wallet does not name one.
-const AddressGeneratorName = "deterministic-chain"
 
 // AddressGeneratorDetails returns the account's address generator the way lbry-sdk reports it:
 // the name and, for the deterministic chain, the gap and maximum uses of both chains, filling in defaults.
