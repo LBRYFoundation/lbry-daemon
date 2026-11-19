@@ -309,7 +309,6 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 		if !paramsMapOk {
 			paramsMap = map[string]any{}
 		}
-
 		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
@@ -605,18 +604,13 @@ func handleJSONRPCMessageBlobReflect(rpcServer *RPCServer, w http.ResponseWriter
 			sendErrorResponse(w, 400, "Parameters not present.")
 			return
 		}
-		blobHashes, hasBlobHashes := paramsMap["blob_hashes"]
-		if !hasBlobHashes {
-			sendErrorResponse(w, 400, "Missing parameter 'blob_hashes'.")
-			return
-		}
-		blobHashesStringArray, blobHashesIsStringArray := blobHashes.([]string)
-		if !blobHashesIsStringArray {
-			sendErrorResponse(w, 400, "Parameter 'key' not of type string array.")
+		blobHashes, err := GetStringArrayParameter(paramsMap, "blob_hashes", true, []string{})
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
 			return
 		}
 
-		resp := rpcServer.blobManager.Reflect(blobHashesStringArray)
+		resp := rpcServer.blobManager.Reflect(blobHashes)
 
 		sendResultResponse(w, resp)
 		return
@@ -1002,9 +996,16 @@ func handleJSONRPCMessageFileSetStatus(rpcServer *RPCServer, w http.ResponseWrit
 
 func handleJSONRPCMessageGet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
-
-	uri, _ := paramsMap["uri"].(string)
+	paramsMap, paramsMapOk := params.(map[string]any)
+	if !paramsMapOk {
+		sendErrorResponse(w, 400, "Parameters not present.")
+		return
+	}
+	uri, err := GetStringParameter(paramsMap, "uri", true, "")
+	if err != nil {
+		sendErrorResponse(w, 400, err.Error())
+		return
+	}
 
 	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
@@ -1264,21 +1265,25 @@ func handleJSONRPCMessagePurchaseList(rpcServer *RPCServer, w http.ResponseWrite
 
 func handleJSONRPCMessageResolve(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
-
-	_, ok := paramsMap["urls"].([]any)
-
-	var urls []any = []any{}
-
-	if ok {
-		urls = paramsMap["urls"].([]any)
+	paramsMap, paramsMapOk := params.(map[string]any)
+	if !paramsMapOk {
+		sendErrorResponse(w, 400, "Parameters not present.")
+		return
 	}
+	urls, err := GetParameter(paramsMap, "urls")
+	if err != nil {
+		sendErrorResponse(w, 400, err.Error())
+		return
+	}
+
+	// TODO: Check if "urls" is string or string array.
+	sendUrls := urls.([]any)
 
 	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.claimtrie.resolve",
-		"params":  urls,
+		"params":  sendUrls,
 	})
 
 	var resolutions map[string]any = map[string]any{}
@@ -1328,7 +1333,7 @@ func handleJSONRPCMessageResolve(rpcServer *RPCServer, w http.ResponseWriter, re
 			if ok {
 				item := convertProtobufToClaim(claimMap, transactionData)
 
-				resolutionKey := urls[index].(string)
+				resolutionKey := sendUrls[index].(string)
 				resolutions[resolutionKey] = item
 			}
 
@@ -1514,9 +1519,16 @@ func handleJSONRPCMessageStreamAbandon(rpcServer *RPCServer, w http.ResponseWrit
 
 func handleJSONRPCMessageStreamCostEstimate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	var paramsMap map[string]any = params.(map[string]any)
-
-	uri, _ := paramsMap["uri"].(string)
+	paramsMap, paramsMapOk := params.(map[string]any)
+	if !paramsMapOk {
+		sendErrorResponse(w, 400, "Parameters not present.")
+		return
+	}
+	uri, err := GetStringParameter(paramsMap, "uri", true, "")
+	if err != nil {
+		sendErrorResponse(w, 400, err.Error())
+		return
+	}
 
 	resolveResp, _ := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
 		"jsonrpc": "2.0",
@@ -1724,14 +1736,9 @@ func handleJSONRPCMessageTransactionShow(rpcServer *RPCServer, w http.ResponseWr
 		sendErrorResponse(w, 400, "Parameters not present.")
 		return
 	}
-	transactionID, hasTransactionID := paramsMap["txid"]
-	if !hasTransactionID {
-		sendErrorResponse(w, 400, "Missing parameter 'txid'.")
-		return
-	}
-	transactionIDString, transactionIDIsString := transactionID.(string)
-	if !transactionIDIsString {
-		sendErrorResponse(w, 400, "Parameter 'txid' not of type string.")
+	txid, err := GetStringParameter(paramsMap, "txid", true, "")
+	if err != nil {
+		sendErrorResponse(w, 400, err.Error())
 		return
 	}
 
@@ -1739,7 +1746,7 @@ func handleJSONRPCMessageTransactionShow(rpcServer *RPCServer, w http.ResponseWr
 		"jsonrpc": "2.0",
 		"id":      rand.Int() + 1,
 		"method":  "blockchain.transaction.info",
-		"params":  []string{transactionIDString},
+		"params":  []string{txid},
 	})
 
 	errorObj, hasError := transactionResp["error"].(map[string]any)
@@ -1917,23 +1924,24 @@ func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter,
 			paramsMap = map[string]any{}
 		}
 
-		wallets := rpcServer.walletManager.ReadList(user)
-
-		singleWallet := false
-		if walletID, hasWalletID := paramsMap["wallet_id"]; hasWalletID {
-			singleWallet = true
-			walletIDString, walletIDIsString := walletID.(string)
-			if !walletIDIsString {
-				sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+		if HasParameter(paramsMap, "wallet_id") {
+			walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
+			if err != nil {
+				sendErrorResponse(w, 400, err.Error())
 				return
 			}
-			found := rpcServer.walletManager.Read(user, walletIDString)
-			if found == nil {
+
+			walletObj := rpcServer.walletManager.Read(user, walletID)
+			if walletObj == nil {
 				sendErrorResponse(w, 400, "Wallet does not exist.")
 				return
 			}
-			wallets = []*wallet.Wallet{found}
+
+			sendResultResponse(w, Paginate([]*wallet.Wallet{walletObj}, 1, 1).ToMap())
+			return
 		}
+
+		wallets := rpcServer.walletManager.ReadList(user)
 
 		walletMaps := []any{}
 		for _, item := range wallets {
@@ -1941,12 +1949,6 @@ func handleJSONRPCMessageWalletList(rpcServer *RPCServer, w http.ResponseWriter,
 				"id":   item.ID,
 				"name": item.Name,
 			})
-		}
-
-		if singleWallet {
-			// lbry-sdk: paginate_list([wallet], 1, 1), whatever page arguments were given.
-			sendResultResponse(w, Paginate(walletMaps, 1, 1).ToMap())
-			return
 		}
 
 		page, _ := paramsMap["page"].(float64)
@@ -2078,17 +2080,12 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 			sendErrorResponse(w, 400, "Parameters not present.")
 			return
 		}
-		password, hasPassword := paramsMap["password"]
-		if !hasPassword {
-			sendErrorResponse(w, 400, "Missing parameter 'password'.")
-			return
-		}
-		passwordString, passwordIsString := password.(string)
-		if !passwordIsString {
-			sendErrorResponse(w, 400, "Parameter 'password' not of type string.")
-			return
-		}
 		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, wallet.DEFAULT_WALLET)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+		password, err := GetStringParameter(paramsMap, "password", true, "")
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
 			return
@@ -2099,7 +2096,7 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
-		ok := walletObj.Unlock(passwordString)
+		ok := walletObj.Unlock(password)
 
 		sendResultResponse(w, ok)
 		return
