@@ -432,7 +432,24 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			madeChanges = true
 		}
 
-		// TODO: Move default account to the front
+		defaultBool, err := GetBooleanParameter(paramsMap, "default", false, false)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+		if defaultBool && accountObj != walletObj.GetDefaultAccount() {
+			for index, account := range walletObj.Accounts {
+				if account != accountObj {
+					continue
+
+				}
+				copy(walletObj.Accounts[1:index+1], walletObj.Accounts[:index])
+				walletObj.Accounts[0] = accountObj
+				madeChanges = true
+				break
+			}
+
+		}
 
 		// 		for key, target := range map[string]**int{
 		// 			"change_gap":         &change.ChangeGap,
@@ -475,7 +492,7 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			"public_key":        accountObj.PublicKey,
 			"address_generator": details["address_generator"],
 			"modified_on":       accountObj.ModifiedOn,
-			"is_default":        false,
+			"is_default":        accountObj == walletObj.GetDefaultAccount(),
 		}
 		sendResultResponse(w, result)
 		return

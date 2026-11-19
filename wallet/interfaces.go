@@ -37,6 +37,13 @@ type Wallet struct {
 	password  string // set while unlocked with a password, enables Lock
 }
 
+func (wallet *Wallet) GetDefaultAccount() *Account {
+	if len(wallet.Accounts) > 0 {
+		return wallet.Accounts[0]
+	}
+	return nil
+}
+
 func (wallet *Wallet) IsEncrypted() bool {
 	return wallet.encrypted
 }
