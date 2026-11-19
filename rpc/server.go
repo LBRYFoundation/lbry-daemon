@@ -304,8 +304,42 @@ func handleJSONRPCMessageAccountFund(rpcServer *RPCServer, w http.ResponseWriter
 func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			paramsMap = map[string]any{}
+		}
+		found, ok := getWalletParameter(rpcServer, w, user, paramsMap)
+		if !ok {
+			return
+		}
+		showSeed, _ := paramsMap["show_seed"].(bool)
+
+		if accountID, hasAccountID := paramsMap["account_id"]; hasAccountID && accountID != nil {
+			accountIDString, accountIDIsString := accountID.(string)
+			if !accountIDIsString {
+				sendErrorResponse(w, 400, "Parameter 'account_id' not of type string.")
+				return
+			}
+			for _, account := range found.Accounts {
+				if account.ID() == accountIDString {
+					// lbry-sdk: paginate_list([account], 1, 1), whatever page arguments were given.
+					sendResultResponse(w, Paginate([]any{accountDetails(account, showSeed)}, 1, 1).ToMap())
+					return
+				}
+			}
+			sendErrorResponse(w, 400, "Couldn't find account: "+accountIDString+".")
+			return
+		}
+
+		items := []any{}
+		for i, account := range found.Accounts {
+			details := accountDetails(account, showSeed)
+			details["is_default"] = i == 0
+			items = append(items, details)
+		}
+		page, _ := paramsMap["page"].(float64)
+		pageSize, _ := paramsMap["page_size"].(float64)
+		sendResultResponse(w, Paginate(items, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap())
 		return
 	}
 	handleUnauthorized(w)
@@ -344,8 +378,79 @@ func handleJSONRPCMessageAccountSend(rpcServer *RPCServer, w http.ResponseWriter
 func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
+		paramsMap, paramsMapOk := params.(map[string]any)
+		if !paramsMapOk {
+			sendErrorResponse(w, 400, "Parameters not present.")
+			return
+		}
+		accountID, hasAccountID := paramsMap["account_id"]
+		if !hasAccountID {
+			sendErrorResponse(w, 400, "Missing parameter 'account_id'.")
+			return
+		}
+		accountIDString, accountIDIsString := accountID.(string)
+		if !accountIDIsString {
+			sendErrorResponse(w, 400, "Parameter 'account_id' not of type string.")
+			return
+		}
+		walletID, ok := getWalletIDParameter(w, paramsMap)
+		if !ok {
+			return
+		}
+
+		change := wallet.AccountChange{}
+		change.Default, _ = paramsMap["default"].(bool)
+		if value, has := paramsMap["new_name"]; has && value != nil {
+			name, isString := value.(string)
+			if !isString {
+				sendErrorResponse(w, 400, "Parameter 'new_name' not of type string.")
+				return
+			}
+			change.NewName = &name
+		}
+		for key, target := range map[string]**int{
+			"change_gap":         &change.ChangeGap,
+			"change_max_uses":    &change.ChangeMaxUses,
+			"receiving_gap":      &change.ReceivingGap,
+			"receiving_max_uses": &change.ReceivingMaxUses,
+		} {
+			value, has := paramsMap[key]
+			if !has || value == nil {
+				continue
+			}
+			number, isNumber := value.(float64)
+			if !isNumber || number != math.Trunc(number) || number < 0 || number > math.MaxInt32 {
+				sendErrorResponse(w, 400, "Parameter '"+key+"' must be a non-negative integer.")
+				return
+			}
+			integer := int(number)
+			*target = &integer
+		}
+
+		account, err := rpcServer.walletManager.SetAccount(user, walletID, accountIDString, change)
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+		// lbry-sdk encodes the account with to_dict() and the id, without the channel keys.
+		details := accountDetails(*account, true)
+		isDefault := false
+		if found := rpcServer.walletManager.Get(user, walletID); found != nil && len(found.Accounts) > 0 {
+			isDefault = found.Accounts[0].ID() == account.ID()
+		}
+		result := map[string]any{
+			"id":                details["id"],
+			"name":              details["name"],
+			"ledger":            details["ledger"],
+			"seed":              account.Seed,
+			"encrypted":         account.Encrypted,
+			"private_key":       account.PrivateKey,
+			"public_key":        account.PublicKey,
+			"address_generator": details["address_generator"],
+			"modified_on":       account.ModifiedOn,
+			"is_default":        isDefault,
+		}
+		sendResultResponse(w, result)
 		return
 	}
 	handleUnauthorized(w)
@@ -1985,4 +2090,55 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 
 func handleUnauthorized(w http.ResponseWriter) {
 	sendErrorResponse(w, 401, "Not permitted to use this method.")
+}
+
+// getWalletIDParameter reads the optional wallet_id, which defaults to default_wallet.
+func getWalletIDParameter(w http.ResponseWriter, paramsMap map[string]any) (string, bool) {
+	walletID, hasWalletID := paramsMap["wallet_id"]
+	if !hasWalletID || walletID == nil {
+		return "default_wallet", true
+	}
+	walletIDString, walletIDIsString := walletID.(string)
+	if !walletIDIsString {
+		sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
+		return "", false
+	}
+	return walletIDString, true
+}
+
+func getWalletParameter(rpcServer *RPCServer, w http.ResponseWriter, user *auth.User, paramsMap map[string]any) (*wallet.Wallet, bool) {
+	walletID, ok := getWalletIDParameter(w, paramsMap)
+	if !ok {
+		return nil, false
+	}
+	found := rpcServer.walletManager.Get(user, walletID)
+	if found == nil {
+		sendErrorResponse(w, 400, "Wallet does not exist.")
+		return nil, false
+	}
+	return found, true
+}
+
+// accountDetails is lbry-sdk's Account.get_details. The balance needs the wallet-server client, so it
+// is reported as 0 until that exists.
+func accountDetails(account wallet.Account, showSeed bool) map[string]any {
+	ledger := account.Ledger
+	if ledger == "" {
+		ledger = "lbc_mainnet"
+	}
+	details := map[string]any{
+		"id":                account.ID(),
+		"name":              account.Name,
+		"ledger":            ledger,
+		"coins":             0,
+		"satoshis":          0,
+		"encrypted":         account.Encrypted,
+		"public_key":        account.PublicKey,
+		"address_generator": account.AddressGeneratorDetails(),
+	}
+	if showSeed {
+		details["seed"] = account.Seed
+	}
+	details["certificates"] = len(account.Certificates)
+	return details
 }

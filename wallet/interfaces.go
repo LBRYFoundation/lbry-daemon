@@ -17,6 +17,18 @@ type WalletManager interface {
 	Unlock(user *auth.User, id string, password string) bool
 }
 
+var ErrWalletNotFound = errors.New("Wallet does not exist.")
+
+// AccountChange holds the settings of lbry-sdk's account_set. A nil field is left as it is.
+type AccountChange struct {
+	Default          bool
+	NewName          *string
+	ChangeGap        *int
+	ChangeMaxUses    *int
+	ReceivingGap     *int
+	ReceivingMaxUses *int
+}
+
 type Wallet struct {
 	ID          string
 	Name        string
@@ -26,6 +38,24 @@ type Wallet struct {
 	locked    bool
 	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
 	password  string // set while unlocked with a password, enables Lock
+}
+
+type Account struct {
+	Name       string `json:"name"`
+	Encrypted  bool   `json:"encrypted"`
+	Seed       string `json:"seed"`
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
+
+	Ledger           string                     `json:"ledger,omitempty"`
+	AddressGenerator json.RawMessage            `json:"address_generator,omitempty"`
+	ModifiedOn       float64                    `json:"modified_on,omitempty"`
+	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
+}
+
+type Preference struct {
+	TimeStamp int64
+	Value     any
 }
 
 func (wallet *Wallet) IsEncrypted() bool {
@@ -114,4 +144,42 @@ type Preference struct {
 func (preference *Preference) SetNewValue(value any) {
 	preference.TimeStamp = time.Now().Unix()
 	preference.Value = value
+}
+
+// ID is the account id: the address of its extended public key (lbry-sdk Account.id).
+func (account *Account) ID() string {
+	id, _ := AddressFromExtendedPublicKey(account.PublicKey)
+	return id
+}
+
+// AddressGeneratorName is the generator lbry-sdk uses when a wallet does not name one.
+const AddressGeneratorName = "deterministic-chain"
+
+// AddressGeneratorDetails returns the account's address generator the way lbry-sdk reports it:
+// the name and, for the deterministic chain, the gap and maximum uses of both chains, filling in defaults.
+func (account *Account) AddressGeneratorDetails() map[string]any {
+	stored := map[string]any{}
+	if len(account.AddressGenerator) > 0 {
+		json.Unmarshal(account.AddressGenerator, &stored)
+	}
+	name, _ := stored["name"].(string)
+	if name == "" {
+		name = AddressGeneratorName
+	}
+	details := map[string]any{"name": name}
+	if name != AddressGeneratorName {
+		return details
+	}
+	for chain, defaultGap := range map[string]int{"receiving": 20, "change": 6} {
+		values := map[string]any{"gap": defaultGap, "maximum_uses_per_address": 1}
+		if given, ok := stored[chain].(map[string]any); ok {
+			for key := range values {
+				if value, ok := given[key]; ok {
+					values[key] = value
+				}
+			}
+		}
+		details[chain] = values
+	}
+	return details
 }
