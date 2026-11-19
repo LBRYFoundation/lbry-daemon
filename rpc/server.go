@@ -308,37 +308,30 @@ func handleJSONRPCMessageAccountList(rpcServer *RPCServer, w http.ResponseWriter
 		if !paramsMapOk {
 			paramsMap = map[string]any{}
 		}
-		walletID, hasWalletID := paramsMap["wallet_id"]
-		if !hasWalletID {
-			walletID = "default_wallet"
+
+		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, "default_wallet")
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
 		}
-		accountID, hasAccountID := paramsMap["account_id"]
-		walletIDString, walletIDIsString := walletID.(string)
-		if !walletIDIsString {
-			sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
-			return
+		accountID, err := GetStringParameter(paramsMap, "account_id", false, "")
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
 		}
 
-		walletObj := rpcServer.walletManager.Get(user, walletIDString)
+		walletObj := rpcServer.walletManager.Get(user, walletID)
 		if walletObj == nil {
 			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
 
-		showSeed, err := GetBooleanParameter(paramsMap, "show_seed")
+		showSeed, err := GetBooleanParameter(paramsMap, "show_seed", false, false)
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
 			return
 		}
 
-		if hasAccountID {
-			accountIDString, accountIDIsString := accountID.(string)
-			if !accountIDIsString {
-				sendErrorResponse(w, 400, "Parameter 'account_id' not of type string.")
-				return
-			}
-
-			accountObj := walletObj.GetAccountByID(accountIDString)
+		if HasParameter(paramsMap, "account_id") {
+			accountObj := walletObj.GetAccountByID(accountID)
 			if accountObj == nil {
 				sendErrorResponse(w, 400, "Account does not exist.")
 				return
@@ -400,18 +393,25 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			sendErrorResponse(w, 400, "Parameters not present.")
 			return
 		}
-		accountID, hasAccountID := paramsMap["account_id"]
-		if !hasAccountID {
-			sendErrorResponse(w, 400, "Missing parameter 'account_id'.")
+
+		walletID, err := GetStringParameter(paramsMap, "wallet_id", false, "default_wallet")
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+		}
+		accountID, err := GetStringParameter(paramsMap, "account_id", true, "")
+		if err != nil {
+			sendErrorResponse(w, 400, err.Error())
+		}
+
+		walletObj := rpcServer.walletManager.Get(user, walletID)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
-		accountIDString, accountIDIsString := accountID.(string)
-		if !accountIDIsString {
-			sendErrorResponse(w, 400, "Parameter 'account_id' not of type string.")
-			return
-		}
-		walletID, ok := getWalletIDParameter(w, paramsMap)
-		if !ok {
+
+		accountObj := walletObj.GetAccountByID(accountID)
+		if accountObj == nil {
+			sendErrorResponse(w, 400, "Account does not exist.")
 			return
 		}
 
@@ -444,38 +444,18 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			*target = &integer
 		}
 
-		walletObj := rpcServer.walletManager.Get(user, walletID)
-		if walletObj == nil {
-			sendErrorResponse(w, 400, "Wallet does not exist.")
-			return
-		}
-
-		_ = accountIDString
-
-		var account *wallet.Account = nil
-
-		// 		account, err := walletObj.SetAccount(accountIDString, change)
-		// 		if err != nil {
-		// 			sendErrorResponse(w, 400, err.Error())
-		// 			return
-		// 		}
-		// lbry-sdk encodes the account with to_dict() and the id, without the channel keys.
-		details := accountDetails(*account, true)
-		isDefault := false
-		if found := rpcServer.walletManager.Get(user, walletID); found != nil && len(found.Accounts) > 0 {
-			isDefault = found.Accounts[0].ID == account.ID
-		}
+		details := accountDetails(*accountObj, true)
 		result := map[string]any{
 			"id":                details["id"],
 			"name":              details["name"],
 			"ledger":            details["ledger"],
-			"seed":              account.Seed,
-			"encrypted":         account.Locked,
-			"private_key":       account.PrivateKey,
-			"public_key":        account.PublicKey,
+			"seed":              accountObj.Seed,
+			"encrypted":         accountObj.Locked,
+			"private_key":       accountObj.PrivateKey,
+			"public_key":        accountObj.PublicKey,
 			"address_generator": details["address_generator"],
-			"modified_on":       account.ModifiedOn,
-			"is_default":        isDefault,
+			"modified_on":       accountObj.ModifiedOn,
+			"is_default":        false,
 		}
 		sendResultResponse(w, result)
 		return
@@ -2117,20 +2097,6 @@ func handleJSONRPCMessageWalletUnlock(rpcServer *RPCServer, w http.ResponseWrite
 
 func handleUnauthorized(w http.ResponseWriter) {
 	sendErrorResponse(w, 401, "Not permitted to use this method.")
-}
-
-// getWalletIDParameter reads the optional wallet_id, which defaults to default_wallet.
-func getWalletIDParameter(w http.ResponseWriter, paramsMap map[string]any) (string, bool) {
-	walletID, hasWalletID := paramsMap["wallet_id"]
-	if !hasWalletID || walletID == nil {
-		return "default_wallet", true
-	}
-	walletIDString, walletIDIsString := walletID.(string)
-	if !walletIDIsString {
-		sendErrorResponse(w, 400, "Parameter 'wallet_id' not of type string.")
-		return "", false
-	}
-	return walletIDString, true
 }
 
 // accountDetails is lbry-sdk's Account.get_details. The balance needs the wallet-server client, so it
