@@ -427,11 +427,21 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			*target = &integer
 		}
 
-		account, err := rpcServer.walletManager.SetAccount(user, walletID, accountIDString, change)
-		if err != nil {
-			sendErrorResponse(w, 400, err.Error())
+		walletObj := rpcServer.walletManager.Get(user, walletID)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
+
+		_ = accountIDString
+
+		var account *wallet.Account = nil
+
+		// 		account, err := walletObj.SetAccount(accountIDString, change)
+		// 		if err != nil {
+		// 			sendErrorResponse(w, 400, err.Error())
+		// 			return
+		// 		}
 		// lbry-sdk encodes the account with to_dict() and the id, without the channel keys.
 		details := accountDetails(*account, true)
 		isDefault := false
@@ -443,7 +453,7 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			"name":              details["name"],
 			"ledger":            details["ledger"],
 			"seed":              account.Seed,
-			"encrypted":         account.Encrypted,
+			"encrypted":         account.Locked,
 			"private_key":       account.PrivateKey,
 			"public_key":        account.PublicKey,
 			"address_generator": details["address_generator"],
@@ -2132,7 +2142,7 @@ func accountDetails(account wallet.Account, showSeed bool) map[string]any {
 		"ledger":            ledger,
 		"coins":             0,
 		"satoshis":          0,
-		"encrypted":         account.Encrypted,
+		"encrypted":         account.Locked,
 		"public_key":        account.PublicKey,
 		"address_generator": account.AddressGeneratorDetails(),
 	}

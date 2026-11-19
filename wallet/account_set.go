@@ -1,13 +1,14 @@
 package wallet
 
-import "encoding/json"
-import "errors"
-import "fmt"
-import "os"
-import "path/filepath"
-import "time"
-
-import "lbry/daemon/auth"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"lbry/daemon/auth"
+	"os"
+	"path/filepath"
+	"time"
+)
 
 // SetAccount ports lbry-sdk's account_set. Only the settings that account_set changes are written, into the
 // wallet file as it is on disk: every other field of the wallet and of its accounts (seeds, private keys,
@@ -16,7 +17,7 @@ func (walletManager *DefaultWalletManager) SetAccount(user *auth.User, walletID 
 	walletManager.mutex.Lock()
 	defer walletManager.mutex.Unlock()
 
-	wallet := walletManager.find(walletID)
+	wallet := walletManager.Get(nil, walletID)
 	if wallet == nil {
 		return nil, ErrWalletNotFound
 	}

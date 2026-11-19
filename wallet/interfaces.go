@@ -40,24 +40,6 @@ type Wallet struct {
 	password  string // set while unlocked with a password, enables Lock
 }
 
-type Account struct {
-	Name       string `json:"name"`
-	Encrypted  bool   `json:"encrypted"`
-	Seed       string `json:"seed"`
-	PrivateKey string `json:"private_key"`
-	PublicKey  string `json:"public_key"`
-
-	Ledger           string                     `json:"ledger,omitempty"`
-	AddressGenerator json.RawMessage            `json:"address_generator,omitempty"`
-	ModifiedOn       float64                    `json:"modified_on,omitempty"`
-	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
-}
-
-type Preference struct {
-	TimeStamp int64
-	Value     any
-}
-
 func (wallet *Wallet) IsEncrypted() bool {
 	return wallet.encrypted
 }
@@ -81,6 +63,11 @@ type Account struct {
 	Seed       string `json:"seed"`
 	PrivateKey string `json:"private_key"`
 	PublicKey  string `json:"public_key"`
+
+	Ledger           string                     `json:"ledger,omitempty"`
+	AddressGenerator json.RawMessage            `json:"address_generator,omitempty"`
+	ModifiedOn       float64                    `json:"modified_on,omitempty"`
+	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
 }
 
 func (account *Account) Lock(password string) error {

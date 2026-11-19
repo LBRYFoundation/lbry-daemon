@@ -1,11 +1,13 @@
 package wallet
 
-import "bytes"
-import "crypto/sha256"
-import "errors"
-import "math/big"
+import (
+	"bytes"
+	"crypto/sha256"
+	"errors"
+	"math/big"
 
-import "golang.org/x/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160"
+)
 
 // LBRY mainnet (lbry-sdk lbry/wallet/ledger.py): P2PKH address prefix and BIP32 extended public key prefix.
 const pubkeyAddressPrefix = 0x55
