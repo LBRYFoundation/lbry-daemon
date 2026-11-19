@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protowire"
 )
@@ -419,39 +420,47 @@ func handleJSONRPCMessageAccountSet(rpcServer *RPCServer, w http.ResponseWriter,
 			return
 		}
 
-		change := wallet.AccountChange{}
-		change.Default, _ = paramsMap["default"].(bool)
-		if value, has := paramsMap["new_name"]; has && value != nil {
-			name, isString := value.(string)
-			if !isString {
-				sendErrorResponse(w, 400, "Parameter 'new_name' not of type string.")
+		madeChanges := false
+
+		if HasParameter(paramsMap, "new_name") {
+			newName, err := GetStringParameter(paramsMap, "new_name", true, "")
+			if err != nil {
+				sendErrorResponse(w, 400, err.Error())
 				return
 			}
-			change.NewName = &name
-		}
-		for key, target := range map[string]**int{
-			"change_gap":         &change.ChangeGap,
-			"change_max_uses":    &change.ChangeMaxUses,
-			"receiving_gap":      &change.ReceivingGap,
-			"receiving_max_uses": &change.ReceivingMaxUses,
-		} {
-			value, has := paramsMap[key]
-			if !has || value == nil {
-				continue
-			}
-			number, isNumber := value.(float64)
-			if !isNumber || number != math.Trunc(number) || number < 0 || number > math.MaxInt32 {
-				sendErrorResponse(w, 400, "Parameter '"+key+"' must be a non-negative integer.")
-				return
-			}
-			integer := int(number)
-			*target = &integer
+			accountObj.Name = newName
+			madeChanges = true
 		}
 
-		updateOk := rpcServer.walletManager.Update(user, walletObj)
-		if !updateOk {
-			sendErrorResponse(w, 400, "Failed updating wallet.")
-			return
+		// TODO: Move default account to the front
+
+		// 		for key, target := range map[string]**int{
+		// 			"change_gap":         &change.ChangeGap,
+		// 			"change_max_uses":    &change.ChangeMaxUses,
+		// 			"receiving_gap":      &change.ReceivingGap,
+		// 			"receiving_max_uses": &change.ReceivingMaxUses,
+		// 		} {
+		// 			value, has := paramsMap[key]
+		// 			if !has || value == nil {
+		// 				continue
+		// 			}
+		// 			number, isNumber := value.(float64)
+		// 			if !isNumber || number != math.Trunc(number) || number < 0 || number > math.MaxInt32 {
+		// 				sendErrorResponse(w, 400, "Parameter '"+key+"' must be a non-negative integer.")
+		// 				return
+		// 			}
+		// 			integer := int(number)
+		// 			*target = &integer
+		// 		}
+
+		if madeChanges {
+			accountObj.ModifiedOn = time.Now().Unix()
+
+			updateOk := rpcServer.walletManager.Update(user, walletObj)
+			if !updateOk {
+				sendErrorResponse(w, 400, "Failed updating wallet.")
+				return
+			}
 		}
 
 		details := accountDetails(*accountObj, true)

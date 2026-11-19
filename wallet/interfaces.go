@@ -26,16 +26,6 @@ type WalletManager interface {
 
 var ErrWalletNotFound = errors.New("Wallet does not exist.")
 
-// AccountChange holds the settings of lbry-sdk's account_set. A nil field is left as it is.
-type AccountChange struct {
-	Default          bool
-	NewName          *string
-	ChangeGap        *int
-	ChangeMaxUses    *int
-	ReceivingGap     *int
-	ReceivingMaxUses *int
-}
-
 type Wallet struct {
 	ID          string
 	Name        string
@@ -88,7 +78,7 @@ type Account struct {
 
 	Ledger           string                     `json:"ledger,omitempty"`
 	AddressGenerator json.RawMessage            `json:"address_generator,omitempty"`
-	ModifiedOn       float64                    `json:"modified_on,omitempty"`
+	ModifiedOn       int64                      `json:"modified_on,omitempty"`
 	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
 }
 
