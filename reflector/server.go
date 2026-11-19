@@ -1,11 +1,13 @@
 package reflector
 
-import "encoding/json"
-import "fmt"
-import "io"
-import "lbry/daemon/blob"
-import "net"
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"lbry/daemon/blob"
+	"net"
+	"time"
+)
 
 type ReflectorServer struct {
 	blobManager *blob.BlobManager

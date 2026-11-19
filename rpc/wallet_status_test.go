@@ -2,17 +2,16 @@ package rpc
 
 import (
 	"encoding/json"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-
 	"lbry/daemon/auth"
 	"lbry/daemon/blob"
 	"lbry/daemon/crypto"
 	"lbry/daemon/settings"
 	"lbry/daemon/wallet"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
 )
 
 func walletStatus(t *testing.T, body string, userAgent string) (int, map[string]any) {

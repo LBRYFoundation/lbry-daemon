@@ -1,8 +1,10 @@
 package wallet
 
-import "os"
-import "path/filepath"
-import "runtime"
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+)
 
 func GetDefaultWalletDirectory() string {
 	switch runtime.GOOS {

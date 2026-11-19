@@ -1,10 +1,12 @@
 package blob
 
-import "crypto/aes"
-import "crypto/cipher"
-import "encoding/hex"
-import "encoding/json"
-import "fmt"
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+)
 
 // StreamDescriptor is the parsed SD blob JSON.
 type StreamDescriptor struct {

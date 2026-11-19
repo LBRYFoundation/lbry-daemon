@@ -1,9 +1,10 @@
 package auth
 
-import "crypto/subtle"
-import "net/http"
-
-import "lbry/daemon/environment"
+import (
+	"crypto/subtle"
+	"lbry/daemon/environment"
+	"net/http"
+)
 
 type DefaultAuthManager struct {
 	Users []User

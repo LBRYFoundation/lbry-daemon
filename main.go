@@ -1,18 +1,20 @@
 package main
 
-import "fmt"
-import "lbry/daemon/auth"
-import "lbry/daemon/blob"
-import "lbry/daemon/dht"
-import "lbry/daemon/peer"
-import "lbry/daemon/settings"
-import "lbry/daemon/stream"
-import "lbry/daemon/reflector"
-import "lbry/daemon/rpc"
-import "lbry/daemon/wallet"
-import "net"
-import "strconv"
-import "sync"
+import (
+	"fmt"
+	"lbry/daemon/auth"
+	"lbry/daemon/blob"
+	"lbry/daemon/dht"
+	"lbry/daemon/peer"
+	"lbry/daemon/reflector"
+	"lbry/daemon/rpc"
+	"lbry/daemon/settings"
+	"lbry/daemon/stream"
+	"lbry/daemon/wallet"
+	"net"
+	"strconv"
+	"sync"
+)
 
 var wg sync.WaitGroup
 

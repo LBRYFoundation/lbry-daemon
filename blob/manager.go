@@ -1,9 +1,11 @@
 package blob
 
-import "fmt"
-import "lbry/daemon/dht"
-import "net"
-import "strings"
+import (
+	"fmt"
+	"lbry/daemon/dht"
+	"net"
+	"strings"
+)
 
 type BlobManager struct {
 	Blobs map[string][]byte

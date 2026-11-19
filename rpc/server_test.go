@@ -1,15 +1,14 @@
 package rpc
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
 	"lbry/daemon/auth"
 	"lbry/daemon/blob"
 	"lbry/daemon/settings"
 	"lbry/daemon/wallet"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 )
 
 func newTestHandler(t *testing.T) http.Handler {

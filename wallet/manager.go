@@ -1,13 +1,14 @@
 package wallet
 
-import "encoding/json"
-import "errors"
-import "os"
-import "path/filepath"
-import "sort"
-import "sync"
-
-import "lbry/daemon/auth"
+import (
+	"encoding/json"
+	"errors"
+	"lbry/daemon/auth"
+	"os"
+	"path/filepath"
+	"sort"
+	"sync"
+)
 
 type WalletFile struct {
 	Name     string    `json:"name"`

@@ -1,13 +1,15 @@
 package stream
 
-import "bytes"
-import "encoding/json"
-import "fmt"
-import "lbry/daemon/blob"
-import "net"
-import "net/http"
-import "runtime/debug"
-import "strings"
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"lbry/daemon/blob"
+	"net"
+	"net/http"
+	"runtime/debug"
+	"strings"
+)
 
 type StreamServer struct {
 	blobManager *blob.BlobManager

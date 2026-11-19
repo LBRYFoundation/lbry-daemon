@@ -1,11 +1,13 @@
 package wallet
 
-import "encoding/json"
-import "errors"
-import "fmt"
-import "time"
-import "lbry/daemon/auth"
-import "lbry/daemon/crypto"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"lbry/daemon/auth"
+	"lbry/daemon/crypto"
+	"time"
+)
 
 type WalletManager interface {
 	List(user *auth.User) []Wallet

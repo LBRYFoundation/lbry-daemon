@@ -1,7 +1,9 @@
 package rpc
 
-import "encoding/hex"
-import "slices"
+import (
+	"encoding/hex"
+	"slices"
+)
 
 func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) map[string]any {
 	claim := map[string]any{}

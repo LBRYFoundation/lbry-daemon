@@ -1,11 +1,13 @@
 package crypto
 
-import "crypto/aes"
-import "crypto/cipher"
-import "crypto/rand"
-import "crypto/sha256"
-import "encoding/base64"
-import "errors"
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"errors"
+)
 
 // ErrInvalidPassword is returned when a value cannot be decrypted with the given password.
 var ErrInvalidPassword = errors.New("invalid password")

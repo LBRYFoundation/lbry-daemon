@@ -1,9 +1,8 @@
 package wallet
 
 import (
-	"testing"
-
 	"lbry/daemon/crypto"
+	"testing"
 )
 
 func TestAccountDecrypt(t *testing.T) {
