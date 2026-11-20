@@ -99,7 +99,9 @@ func (rpcServer *RPCServer) handleJSONRPC(w http.ResponseWriter, req *http.Reque
 	if strings.EqualFold(req.Method, "POST") {
 		var message any
 
-		err := json.NewDecoder(req.Body).Decode(&message)
+		jsonDecoder := json.NewDecoder(req.Body)
+		jsonDecoder.UseNumber()
+		err := jsonDecoder.Decode(&message)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			sendErrorResponse(w, -32700, "Cannot parse invalid JSON data.")

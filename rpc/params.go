@@ -1,8 +1,10 @@
 package rpc
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 func HasParameter(params map[string]any, key string) bool {
@@ -48,7 +50,7 @@ func GetStringParameter(params map[string]any, key string, failOnMissing bool, d
 	return paramString, nil
 }
 
-func GetIntegerParameter(params map[string]any, key string, failOnMissing bool, defaultValue int64) (int64, error) {
+func GetJSONNumberParameter(params map[string]any, key string, failOnMissing bool, defaultValue json.Number) (json.Number, error) {
 	param, err := GetParameter(params, key)
 	if err != nil {
 		if failOnMissing {
@@ -56,11 +58,37 @@ func GetIntegerParameter(params map[string]any, key string, failOnMissing bool, 
 		}
 		return defaultValue, nil
 	}
-	paramString, paramIsString := param.(int64)
+	paramString, paramIsString := param.(json.Number)
 	if !paramIsString {
-		return defaultValue, errors.New(fmt.Sprintf("Parameter '%s' not of type integer.", key))
+		return defaultValue, errors.New(fmt.Sprintf("Parameter '%s' not a number type.", key))
 	}
 	return paramString, nil
+}
+
+func GetIntegerParameter(params map[string]any, key string, failOnMissing bool, defaultValue int64) (int64, error) {
+	jsonNumber, err := GetJSONNumberParameter(params, key, failOnMissing, json.Number(strconv.FormatInt(defaultValue, 10)))
+	if err != nil {
+		return defaultValue, err
+	}
+	integer, err := jsonNumber.Int64()
+	if err != nil {
+		return defaultValue, errors.New(fmt.Sprintf("Parameter '%s' is a number not of type integer.", key))
+	}
+
+	return integer, nil
+}
+
+func GetFloatParameter(params map[string]any, key string, failOnMissing bool, defaultValue float64) (float64, error) {
+	jsonNumber, err := GetJSONNumberParameter(params, key, failOnMissing, json.Number(strconv.FormatFloat(defaultValue, 'f', -1, 64)))
+	if err != nil {
+		return defaultValue, err
+	}
+	float, err := jsonNumber.Float64()
+	if err != nil {
+		return defaultValue, errors.New(fmt.Sprintf("Parameter '%s' is a JSON number not of type float.", key))
+	}
+
+	return float, nil
 }
 
 func GetStringArrayParameter(params map[string]any, key string, failOnMissing bool, defaultValue []string) ([]string, error) {
