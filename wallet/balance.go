@@ -1,10 +1,12 @@
 package wallet
 
-import "errors"
-import "fmt"
-import "strconv"
-import "strings"
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+)
 
 // Hub is a wallet-server connection: one JSON-RPC call, returning the decoded "result".
 type Hub interface {

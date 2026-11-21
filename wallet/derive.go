@@ -1,15 +1,17 @@
 package wallet
 
-import "crypto/hmac"
-import "crypto/sha256"
-import "crypto/sha512"
-import "encoding/binary"
-import "encoding/hex"
-import "errors"
-import "fmt"
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/binary"
+	"encoding/hex"
+	"errors"
+	"fmt"
 
-import "github.com/decred/dcrd/dcrec/secp256k1/v4"
-import "golang.org/x/crypto/ripemd160"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"golang.org/x/crypto/ripemd160"
+)
 
 // ExtendedPublicKey is a BIP32 extended public key. Only public derivation of non-hardened children is
 // supported: no private keys are handled.
