@@ -58,7 +58,13 @@ func main() {
 				fmt.Println("Failed listening on TCP port for RPC server.")
 				return
 			}
-			defer listener.Close()
+			defer func(listener net.Listener) {
+				err := listener.Close()
+				if err != nil {
+					fmt.Println("Failed stopping RPC server.")
+					return
+				}
+			}(listener)
 			rpcServer.Start(listener)
 		})
 		runningServers++
@@ -72,7 +78,13 @@ func main() {
 				fmt.Println("Failed listening on TCP port for content server.")
 				return
 			}
-			defer listener.Close()
+			defer func(listener net.Listener) {
+				err := listener.Close()
+				if err != nil {
+					fmt.Println("Failed stopping content server.")
+					return
+				}
+			}(listener)
 			contentServer.Start(listener)
 		})
 		runningServers++
@@ -86,7 +98,13 @@ func main() {
 				fmt.Println("Failed listening on TCP port for reflector server.")
 				return
 			}
-			defer listener.Close()
+			defer func(listener net.Listener) {
+				err := listener.Close()
+				if err != nil {
+					fmt.Println("Failed stopping reflector server.")
+					return
+				}
+			}(listener)
 			reflectorServer.Start(listener)
 		})
 		runningServers++
@@ -100,7 +118,13 @@ func main() {
 				fmt.Println("Failed listening on TCP port for peer server.")
 				return
 			}
-			defer listener.Close()
+			defer func(listener net.Listener) {
+				err := listener.Close()
+				if err != nil {
+					fmt.Println("Failed stopping peer server.")
+					return
+				}
+			}(listener)
 			peerServer.Start(listener)
 		})
 		runningServers++
