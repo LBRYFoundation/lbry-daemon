@@ -100,7 +100,7 @@ type AddressGeneratorChain struct {
 
 func (account *Account) Lock(password string) error {
 	if account.Locked {
-		return errors.New("Account is already locked.")
+		return errors.New("account is already locked")
 	}
 	var lockedSeed string
 	var lockedPrivateKey string
@@ -124,7 +124,7 @@ func (account *Account) Lock(password string) error {
 
 func (account *Account) Unlock(password string) error {
 	if !account.Locked {
-		return errors.New("Account is already unlocked.")
+		return errors.New("account is already unlocked")
 	}
 	var unlockedSeed string
 	var unlockedPrivateKey string

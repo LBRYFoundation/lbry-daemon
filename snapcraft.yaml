@@ -4,7 +4,7 @@ type: app
 base: core24
 confinement: strict
 version: master
-summary: LBRY Command Line Interface
+summary: LBRY Daemon
 description: The LBRY Daemon.
 license: MIT
 website: https://lbry.org
@@ -41,9 +41,9 @@ platforms:
   i386:
     build-on: amd64
     build-for: i386
-#  powerpc:
-#    build-on: amd64
-#    build-for: powerpc
+  #  powerpc:
+  #    build-on: amd64
+  #    build-for: powerpc
   ppc64el:
     build-on: amd64
     build-for: ppc64el

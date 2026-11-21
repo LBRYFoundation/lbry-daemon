@@ -34,7 +34,7 @@ const (
 	hubParallelism = 8
 )
 
-// WalletBalance adds up the balance of the accounts' addresses with the hub. confirmations is 0 to include
+// WalletBalance adds up the balance of the accounts' addresses with the hub. confirmations are 0 to include
 // unconfirmed transactions or 1 for confirmed ones only (lbry-sdk's wallet_balance default is 0). It only
 // needs public keys, so it works on a locked wallet. A hub failure is an error, never a zero balance.
 func WalletBalance(hub Hub, accounts []*Account, confirmations int) (Balance, error) {

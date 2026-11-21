@@ -29,7 +29,6 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 )
 
-// const TMP_HUB_HOSTNAME = "s1.lbry.network"
 const TMP_HUB_HOSTNAME = "hub.lbry.grin.io"
 
 type RPCServer struct {

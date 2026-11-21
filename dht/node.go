@@ -37,7 +37,7 @@ const TYPE_REQUEST = 0
 const TYPE_RESPONSE = 1
 const TYPE_ERROR = 2
 
-// Bootstrap seed nodes.
+// SeedNodes Bootstrap seed nodes.
 var SeedNodes = []string{
 	"51.83.238.186:4444",
 	"dht.lbry.grin.io:4444",
@@ -76,7 +76,7 @@ func ParseCompactAddr(b []byte) (ip net.IP, tcpPort int, nodeID [HashSize]byte) 
 	return
 }
 
-// XOR distance between two IDs.
+// Distance XOR distance between two IDs.
 func Distance(a, b [HashSize]byte) [HashSize]byte {
 	var d [HashSize]byte
 	for i := range d {
@@ -85,7 +85,7 @@ func Distance(a, b [HashSize]byte) [HashSize]byte {
 	return d
 }
 
-// Less returns true if distance a < b (big-endian comparison).
+// DistanceLess Less returns true if distance a < b (big-endian comparison).
 func DistanceLess(a, b [HashSize]byte) bool {
 	for i := range a {
 		if a[i] < b[i] {
@@ -359,11 +359,11 @@ func (n *Node) handlePing(from *net.UDPAddr, args []any) (any, []any, error) {
 
 func (n *Node) handleFindNode(from *net.UDPAddr, args []any) (any, []any, error) {
 	if len(args) == 0 {
-		return nil, nil, errors.New("Needs arguments")
+		return nil, nil, errors.New("needs arguments")
 	}
 	key := toBytes(args[0])
 	if len(key) != HashSize {
-		return nil, nil, errors.New("Key fails length")
+		return nil, nil, errors.New("key fails length")
 	}
 	var keyArr [HashSize]byte
 	copy(keyArr[:], key)
@@ -375,17 +375,7 @@ func (n *Node) handleFindNode(from *net.UDPAddr, args []any) (any, []any, error)
 
 func (n *Node) handleFindValue(from *net.UDPAddr, args []any) (any, []any, error) {
 	// We don't store values, just return closest nodes
-	if len(args) == 0 {
-		return nil, nil, errors.New("Needs arguments")
-	}
-	key := toBytes(args[0])
-	if len(key) != HashSize {
-		return nil, nil, errors.New("Key fails length")
-	}
-	var keyArr [HashSize]byte
-	copy(keyArr[:], key)
-	peers := n.Routing.ClosestPeers(keyArr, K)
-	contacts := peersToContactList(peers)
+	contacts, _, _ := n.handleFindNode(from, args)
 
 	// Generate token
 	token := n.makeToken(from.IP)
@@ -399,7 +389,7 @@ func (n *Node) handleFindValue(from *net.UDPAddr, args []any) (any, []any, error
 }
 
 func (n *Node) handleStore(from *net.UDPAddr, args []any) (any, []any, error) {
-	return nil, nil, errors.New("Not implemented")
+	return nil, nil, errors.New("not implemented")
 }
 
 func (n *Node) makeToken(ip net.IP) []byte {

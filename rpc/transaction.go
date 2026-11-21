@@ -135,7 +135,7 @@ func parseTxOutputs(rawHex string) ([]TxOutput, error) {
 	}
 	offset += n
 
-	for i := uint64(0); i < inCount; i++ {
+	for range inCount {
 		offset += 32 + 4 // prev_hash + prev_index
 		scriptLen, n := readCompactSize(data, offset)
 		if n == 0 {
@@ -155,7 +155,7 @@ func parseTxOutputs(rawHex string) ([]TxOutput, error) {
 	offset += n
 
 	outputs := make([]TxOutput, 0, outCount)
-	for i := uint64(0); i < outCount; i++ {
+	for range outCount {
 		if offset+8 > len(data) {
 			return nil, fmt.Errorf("unexpected end reading output amount")
 		}
@@ -247,7 +247,7 @@ func reverseBytes(b []byte) []byte {
 	return out
 }
 
-// computeClaimID computes claim_id from tx_hash (internal byte order) and output index.
+// ComputeClaimID computes claim_id from tx_hash (internal byte order) and output index.
 func ComputeClaimID(txHash []byte, nout uint32) []byte {
 	buf := make([]byte, 36)
 	copy(buf, txHash)

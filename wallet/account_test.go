@@ -93,8 +93,6 @@ func rawWalletManager(t *testing.T) (*DefaultWalletManager, string) {
 	return manager, path
 }
 
-func ptr[T any](value T) *T { return &value }
-
 // func TestSetAccountRenamesAndKeepsEverythingElse(t *testing.T) {
 // 	manager, path := rawWalletManager(t)
 // 	account, err := manager.SetAccount(nil, "raw", idOne, AccountChange{NewName: ptr("renamed")})
