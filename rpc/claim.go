@@ -10,15 +10,25 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 
 	claim["type"] = "claim"
 
+	// The hub's protobuf has the transaction hash in internal byte order. The caller has already reversed it
+	// in place for the transaction lookup, so it is the txid as written now.
 	var transactionID string
+	var txHash []byte // internal byte order
 
 	txidValue, txidOk := protobuf[1]
 	if txidOk {
 		txid := txidValue.([]byte)
 		transactionID = hex.EncodeToString(txid)
-		slices.Reverse(txid)
-		claim["txid"] = hex.EncodeToString(txid)
+		claim["txid"] = transactionID
+		txHash = slices.Clone(txid)
+		slices.Reverse(txHash)
 	}
+
+	// The hub leaves out a position of 0, as protobuf does for any zero value.
+	noutValue, noutOk := protobuf[2]
+	position, _ := noutValue.(uint64)
+	nout := uint32(position)
+	claim["nout"] = position
 
 	transactionData := transactions[transactionID].([]any)
 	transactionBytes := transactionData[0].(string)
@@ -27,36 +37,38 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 	output, _ := parseTxOutputs(transactionBytes)
 	var claimScript *ClaimScript
 
-	for _, o := range output {
+	// The claim is the output at its position; without one, the last claim script of the transaction.
+	for i, o := range output {
 		script, _ := parseClaimScript(o.Script)
-		if script != nil {
+		if script != nil && (claimScript == nil || !noutOk || i == int(nout)) {
 			claimScript = script
 		}
 	}
+	if claimScript == nil {
+		return claim
+	}
 
-	if len(claimScript.ClaimData) < 85 {
+	// The claim data starts with a version byte: 0 is an unsigned claim and the protobuf follows, 1 is a claim
+	// signed by a channel, with the channel's claim id (20 bytes) and the signature (64) before the protobuf.
+	var claimProtobuf []byte
+	switch {
+	case len(claimScript.ClaimData) > 0 && claimScript.ClaimData[0] == 0:
+		claimProtobuf = claimScript.ClaimData[1:]
+	case len(claimScript.ClaimData) >= 85 && claimScript.ClaimData[0] == 1:
+		claimProtobuf = claimScript.ClaimData[85:]
+	default:
 		// TODO: Older schemes
 		return claim
 	}
 
-	decodedProtobufClaimData, _ := DecodeRawProto(claimScript.ClaimData[85:])
-
-	noutValue, noutOk := protobuf[2]
-	if noutOk {
-		nout := noutValue.(uint64)
-		claim["nout"] = nout
-	}
+	decodedProtobufClaimData, _ := DecodeRawProto(claimProtobuf)
 
 	claimID := claimScript.ClaimID
 	if claimID == nil {
-		var nout uint32
-		noutValue, ok := noutValue.(uint32)
-		if ok {
-			nout = noutValue
-		}
-		claimID = ComputeClaimID(txidValue.([]byte), nout)
+		claimID = ComputeClaimID(txHash, nout)
+	} else {
+		claimID = reverseBytes(claimID)
 	}
-	//slices.Reverse(claimID)
 	claim["claim_id"] = hex.EncodeToString(claimID)
 
 	heightValue, heightOk := protobuf[3]

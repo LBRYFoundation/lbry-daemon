@@ -104,6 +104,11 @@ func (key *ExtendedPublicKey) Address() string {
 	return AddressFromPublicKey(key.key[:])
 }
 
+// Hash160 is the hash of the public key, which the address and the script of a payment to it are made of.
+func (key *ExtendedPublicKey) Hash160() []byte {
+	return hash160(key.key[:])
+}
+
 // ScriptHash is what the wallet server indexes an address by: the SHA-256 of its pay-to-public-key-hash
 // output script (OP_DUP OP_HASH160 <hash160> OP_EQUALVERIFY OP_CHECKSIG), byte-reversed, in hex.
 func (key *ExtendedPublicKey) ScriptHash() string {

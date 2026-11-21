@@ -716,16 +716,6 @@ func handleJSONRPCMessageChannelImport(rpcServer *RPCServer, w http.ResponseWrit
 	handleUnauthorized(w)
 }
 
-func handleJSONRPCMessageChannelList(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	user, authenticated := rpcServer.authManager.ValidateUser(req)
-	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
-		return
-	}
-	handleUnauthorized(w)
-}
-
 func handleJSONRPCMessageChannelNew(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	sendErrorResponse(w, 404, "Command 'channel_new' has been deprecated. Use 'channel_create' for this.")
 }
@@ -762,7 +752,7 @@ func handleJSONRPCMessageClaimList(rpcServer *RPCServer, w http.ResponseWriter, 
 
 // Hub connection timeouts. Variables so that tests can shorten them.
 var (
-	HubDialTimeout  = 5 * time.Second
+	HubDialTimeout  = 3 * time.Second
 	HubReplyTimeout = 15 * time.Second
 )
 
@@ -780,18 +770,21 @@ func SendJSON(host string, port int, req any) (map[string]any, error) {
 	return SendJSONToAddresses(addresses, req)
 }
 
-// SendJSONToAddresses tries each address ("host:port") in order and returns the first reply.
+// SendJSONToAddresses tries each address ("host:port") and returns the first reply. An address that failed
+// recently is tried last (see hubHealth), so a dead one costs one timeout, not one per call.
 func SendJSONToAddresses(addresses []string, req any) (map[string]any, error) {
 	data, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
 	errs := []error{}
-	for _, address := range addresses {
+	for _, address := range hubAddressHealth.order(addresses) {
 		resp, err := sendJSONToAddress(address, data)
 		if err == nil {
+			hubAddressHealth.succeeded(address)
 			return resp, nil
 		}
+		hubAddressHealth.fail(address)
 		errs = append(errs, fmt.Errorf("%s: %w", address, err))
 	}
 	if len(errs) == 0 {
@@ -888,74 +881,11 @@ func claimSearchPaging(params any) (int64, int64) {
 
 func handleJSONRPCMessageClaimSearch(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	// Relaxed
-	searchResp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  "blockchain.claimtrie.search",
-		"params":  params,
-	})
+	items, totalItems, okTotal, err := hubClaimSearch(params)
 	if err != nil {
-		sendErrorResponse(w, 502, "The hub did not answer: "+err.Error())
+		sendErrorResponse(w, 502, err.Error())
 		return
 	}
-	encoded, encodedOk := searchResp["result"].(string)
-	if !encodedOk {
-		sendErrorResponse(w, 502, "The hub sent an unexpected reply to the search.")
-		return
-	}
-
-	decodedBase64, _ := base64.StdEncoding.DecodeString(encoded)
-	decodedProtobuf, _ := DecodeRawProto(decodedBase64)
-
-	claims, ok := decodedProtobuf[1].([]any)
-
-	txIDs := []string{}
-
-	if ok {
-		for _, claim := range claims {
-			claimMap := claim.(map[int]any)
-			txidValue, txidOk := claimMap[1]
-			if txidOk {
-				txidBytes := txidValue.([]byte)
-				slices.Reverse(txidBytes)
-				txID := hex.EncodeToString(txidBytes)
-				txIDs = append(txIDs, txID)
-			}
-		}
-	}
-
-	transactionData := map[string]any{}
-	if len(txIDs) > 0 {
-		transactionResp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-			"jsonrpc": "2.0",
-			"id":      rand.Int() + 1,
-			"method":  "blockchain.transaction.get_batch",
-			"params":  txIDs,
-		})
-		if err != nil {
-			sendErrorResponse(w, 502, "The hub did not answer: "+err.Error())
-			return
-		}
-		var transactionOk bool
-		if transactionData, transactionOk = transactionResp["result"].(map[string]any); !transactionOk {
-			sendErrorResponse(w, 502, "The hub sent an unexpected reply to the transaction request.")
-			return
-		}
-	}
-
-	var items []map[string]any = []map[string]any{}
-
-	if ok {
-		for _, claim := range claims {
-			claimMap := claim.(map[int]any)
-
-			item := convertProtobufToClaim(claimMap, transactionData)
-
-			items = append(items, item)
-		}
-	}
-
-	totalItems, okTotal := (decodedProtobuf[3]).(uint64)
 
 	page, pageSize := claimSearchPaging(params)
 	var totalItemsFloat float64 = 0
@@ -2012,8 +1942,11 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 				"total":     wallet.FormatLBC(balance.Total),
 				"available": wallet.FormatLBC(balance.Available),
 				"reserved":  wallet.FormatLBC(balance.Reserved),
-				// Reserved value is not worked out yet (see wallet.Balance).
-				"reserved_subtotals": map[string]any{"claims": "0.0", "supports": "0.0", "tips": "0.0"},
+				"reserved_subtotals": map[string]any{
+					"claims":   wallet.FormatLBC(balance.Claims),
+					"supports": wallet.FormatLBC(balance.Supports),
+					"tips":     wallet.FormatLBC(balance.Tips),
+				},
 			})
 		}
 		return
@@ -2023,16 +1956,6 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 
 // hubClient calls the wallet server and returns the "result" of its reply.
 type hubClient struct{}
-
-func (hubClient) Call(method string, params any) (any, error) {
-	resp, err := SendJSON(TMP_HUB_HOSTNAME, 50001, map[string]any{
-		"jsonrpc": "2.0",
-		"id":      rand.Int() + 1,
-		"method":  method,
-		"params":  params,
-	})
-	return hubResult(method, resp, err)
-}
 
 func hubResult(method string, resp map[string]any, err error) (any, error) {
 	if err != nil {
