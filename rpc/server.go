@@ -1990,14 +1990,15 @@ func handleJSONRPCMessageWalletBalance(rpcServer *RPCServer, w http.ResponseWrit
 			sendErrorResponse(w, 400, err.Error())
 			return
 		}
-		walletObj := rpcServer.walletManager.Read(user, walletID)
-		if walletObj == nil {
-			sendErrorResponse(w, 400, "Wallet does not exist.")
-			return
-		}
 		confirmations, err := GetIntegerParameter(paramsMap, "confirmations", false, 0)
 		if err != nil {
 			sendErrorResponse(w, 400, err.Error())
+			return
+		}
+
+		walletObj := rpcServer.walletManager.Read(user, walletID)
+		if walletObj == nil {
+			sendErrorResponse(w, 400, "Wallet does not exist.")
 			return
 		}
 
