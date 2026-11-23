@@ -268,7 +268,7 @@ func (n *Node) readLoop() {
 }
 
 func (n *Node) handleMessage(data []byte, from *net.UDPAddr) {
-	decoded, _, err := BencodeDecode(data)
+	decoded, err := BencodeDecode(data)
 	if err != nil {
 		return
 	}
@@ -400,14 +400,14 @@ func (n *Node) makeToken(ip net.IP) []byte {
 }
 
 func (n *Node) sendMessage(to *net.UDPAddr, message DHTMessage) {
-	msg := map[int]any{
-		0: message.Type,
-		1: message.RPCID,
-		2: n.ID[:],
-		3: message.Payload,
+	msg := map[string]any{
+		"0": message.Type,
+		"1": message.RPCID,
+		"2": n.ID[:],
+		"3": message.Payload,
 	}
 	if message.Arguments != nil {
-		msg[4] = message.Arguments
+		msg["4"] = message.Arguments
 	}
 
 	data, err := BencodeEncode(msg)
