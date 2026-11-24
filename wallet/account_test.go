@@ -19,13 +19,20 @@ const (
 func TestAccountID(t *testing.T) {
 	for publicKey, want := range map[string]string{publicKeyOne: idOne, publicKeyTwo: idTwo} {
 		account := Account{PublicKey: publicKey}
+		if err := account.CalculateID(); err != nil {
+			t.Fatalf("CalculateID(%q): %v", publicKey, err)
+		}
 		if got := account.ID; got != want {
 			t.Errorf("ID = %q, want %q", got, want)
 		}
 	}
 	for name, publicKey := range map[string]string{"empty": "", "not base58": "xpub0OIl", "bad checksum": publicKeyOne[:len(publicKeyOne)-1] + "a"} {
-		if got := (&Account{PublicKey: publicKey}).ID; got != "" {
-			t.Errorf("%s: expected no id, got %q", name, got)
+		account := &Account{PublicKey: publicKey}
+		if err := account.CalculateID(); err == nil {
+			t.Errorf("%s: expected an error", name)
+		}
+		if account.ID != "" {
+			t.Errorf("%s: expected no id, got %q", name, account.ID)
 		}
 	}
 }

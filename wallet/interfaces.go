@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"lbry/daemon/auth"
@@ -89,19 +88,11 @@ type Account struct {
 }
 
 func (account *Account) CalculateID() error {
-	payload, err := base58CheckDecode(account.PublicKey)
+	id, err := AddressFromExtendedPublicKey(account.PublicKey)
 	if err != nil {
 		return err
 	}
-	// version(4) depth(1) parent fingerprint(4) child number(4) chain code(32) key(33)
-	if len(payload) != 78 || !bytes.Equal(payload[:4], extendedPublicKeyPrefix) {
-		return errors.New("not a LBRY extended public key")
-	}
-	key := payload[45:]
-	if key[0] != 0x02 && key[0] != 0x03 {
-		return errors.New("not a compressed public key")
-	}
-	account.ID = AddressFromPublicKey(key)
+	account.ID = id
 	return nil
 }
 
@@ -178,34 +169,3 @@ func (preference *Preference) SetNewValue(value any) {
 	preference.TimeStamp = float64(time.Now().Unix())
 	preference.Value = value
 }
-
-// AddressGeneratorName is the generator lbry-sdk uses when a wallet does not name one.
-
-// AddressGeneratorDetails returns the account's address generator the way lbry-sdk reports it:
-// the name and, for the deterministic chain, the gap and maximum uses of both chains, filling in defaults.
-// func (account *Account) AddressGeneratorDetails() map[string]any {
-// 	stored := map[string]any{}
-// 	if len(account.AddressGenerator) > 0 {
-// 		json.Unmarshal(account.AddressGenerator, &stored)
-// 	}
-// 	name, _ := stored["name"].(string)
-// 	if name == "" {
-// 		name = AddressGeneratorName
-// 	}
-// 	details := map[string]any{"name": name}
-// 	if name != AddressGeneratorName {
-// 		return details
-// 	}
-// 	for chain, defaultGap := range map[string]int{"receiving": 20, "change": 6} {
-// 		values := map[string]any{"gap": defaultGap, "maximum_uses_per_address": 1}
-// 		if given, ok := stored[chain].(map[string]any); ok {
-// 			for key := range values {
-// 				if value, ok := given[key]; ok {
-// 					values[key] = value
-// 				}
-// 			}
-// 		}
-// 		details[chain] = values
-// 	}
-// 	return details
-// }
