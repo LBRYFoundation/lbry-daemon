@@ -10,6 +10,10 @@ import (
 
 var testIV = []byte("0123456789abcdef")
 
+func stringPtr(value string) *string {
+	return &value
+}
+
 func writeWallet(t *testing.T, dir, file string, data Wallet) {
 	t.Helper()
 	raw, err := json.Marshal(data)
@@ -23,8 +27,8 @@ func writeWallet(t *testing.T, dir, file string, data Wallet) {
 
 func fixture(t *testing.T) WalletManager {
 	dir := t.TempDir()
-	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
-	writeWallet(t, dir, "secret", Wallet{Name: "Secret", Accounts: []*Account{{
+	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: stringPtr("My Wallet"), Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
+	writeWallet(t, dir, "secret", Wallet{Name: stringPtr("Secret"), Accounts: []*Account{{
 		Name: "enc", Locked: true,
 		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
 		PrivateKey: crypto.Encrypt("hunter2", "xprv-secret", testIV),
@@ -40,7 +44,7 @@ func fixture(t *testing.T) WalletManager {
 func TestListAndGet(t *testing.T) {
 	manager := fixture(t)
 	list := manager.ReadList(nil)
-	if len(list) != 2 || list[0].ID != DEFAULT_WALLET || list[0].Name != "My Wallet" || list[1].ID != "secret" {
+	if len(list) != 2 || list[0].ID != DEFAULT_WALLET || list[0].Name == nil || *list[0].Name != "My Wallet" || list[1].ID != "secret" {
 		t.Fatalf("unexpected list: %+v", list)
 	}
 	if manager.Read(nil, "secret") == nil || manager.Read(nil, "missing") != nil {
@@ -48,13 +52,17 @@ func TestListAndGet(t *testing.T) {
 	}
 }
 
-// lbry-sdk keeps an empty wallet name as-is; the id is the file name. The list
-// is ordered by id, not by the name in the file.
+// lbry-sdk keeps an empty wallet name as-is and uses "Wallet" when the name is
+// missing. The id is the file name, and the list is ordered by id, not by the
+// name in the file.
 func TestLoadNameAndSorting(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "b", Wallet{Name: "Alpha"})
-	writeWallet(t, dir, "a", Wallet{Name: ""})
-	writeWallet(t, dir, "c", Wallet{Name: "Beta"})
+	writeWallet(t, dir, "b", Wallet{Name: stringPtr("Alpha")})
+	writeWallet(t, dir, "a", Wallet{Name: stringPtr("")})
+	writeWallet(t, dir, "c", Wallet{Name: stringPtr("Beta")})
+	if err := os.WriteFile(filepath.Join(dir, "d"), []byte(`{"accounts":[]}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	manager := NewDefaultWalletManager(dir)
 	if err := manager.(*DefaultWalletManager).Load(); err != nil {
@@ -62,15 +70,16 @@ func TestLoadNameAndSorting(t *testing.T) {
 	}
 
 	list := manager.ReadList(nil)
-	if len(list) != 3 {
+	if len(list) != 4 {
 		t.Fatalf("unexpected list: %+v", list)
 	}
 	for i, want := range []struct{ id, name string }{
 		{"a", ""},
 		{"b", "Alpha"},
 		{"c", "Beta"},
+		{"d", "Wallet"},
 	} {
-		if list[i].ID != want.id || list[i].Name != want.name {
+		if list[i].ID != want.id || list[i].Name == nil || *list[i].Name != want.name {
 			t.Errorf("wallet %d = %+v, want id %q and name %q", i, list[i], want.id, want.name)
 		}
 	}
@@ -141,7 +150,7 @@ func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "two", Wallet{Name: "Two", Accounts: []*Account{
+	writeWallet(t, dir, "two", Wallet{Name: stringPtr("Two"), Accounts: []*Account{
 		{Locked: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
 		{Locked: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
 	}})
@@ -170,7 +179,7 @@ func TestUnencryptedAndMissingWallets(t *testing.T) {
 
 func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: "My Wallet"})
+	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: stringPtr("My Wallet")})
 	manager := NewDefaultWalletManager(dir)
 	if len(manager.ReadList(nil)) != 0 {
 		t.Fatal("NewDefaultWalletManager must not read the directory")

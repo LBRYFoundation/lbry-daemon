@@ -26,9 +26,9 @@ type WalletManager interface {
 
 type Wallet struct {
 	ID          string                 `json:"-"`
-	Name        string                 `json:"name"`
+	Name        *string                `json:"name"`
 	Accounts    []*Account             `json:"accounts"`
-	Preferences map[string]*Preference `json:"-"`
+	Preferences map[string]*Preference `json:"preferences"`
 
 	locked    bool
 	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
@@ -152,12 +152,12 @@ func (account *Account) Unlock(password string) error {
 }
 
 type Preference struct {
-	TimeStamp int64
-	Value     any
+	TimeStamp float64 `json:"ts"`
+	Value     any     `json:"value"`
 }
 
 func (preference *Preference) SetNewValue(value any) {
-	preference.TimeStamp = time.Now().Unix()
+	preference.TimeStamp = float64(time.Now().Unix())
 	preference.Value = value
 }
 

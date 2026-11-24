@@ -46,12 +46,18 @@ func (walletManager *DefaultWalletManager) Load() error {
 		}
 		wallet := &Wallet{
 			ID: entry.Name(),
-			Preferences: map[string]*Preference{
-				"local": {},
-			},
 		}
 		if json.Unmarshal(content, wallet) != nil {
 			continue
+		}
+		if wallet.Name == nil {
+			name := "Wallet"
+			wallet.Name = &name
+		}
+		if wallet.Preferences == nil {
+			wallet.Preferences = map[string]*Preference{
+				"local": {},
+			}
 		}
 		wallets = append(wallets, wallet)
 	}
