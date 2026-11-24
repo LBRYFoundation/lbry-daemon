@@ -25,10 +25,10 @@ type WalletManager interface {
 }
 
 type Wallet struct {
-	ID          string
-	Name        string
-	Accounts    []*Account
-	Preferences map[string]*Preference
+	ID          string                 `json:"-"`
+	Name        string                 `json:"name"`
+	Accounts    []*Account             `json:"accounts"`
+	Preferences map[string]*Preference `json:"-"`
 
 	locked    bool
 	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
