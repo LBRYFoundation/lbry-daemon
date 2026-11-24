@@ -10,7 +10,7 @@ import (
 
 var testIV = []byte("0123456789abcdef")
 
-func writeWallet(t *testing.T, dir, file string, data WalletFile) {
+func writeWallet(t *testing.T, dir, file string, data Wallet) {
 	t.Helper()
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -23,8 +23,8 @@ func writeWallet(t *testing.T, dir, file string, data WalletFile) {
 
 func fixture(t *testing.T) WalletManager {
 	dir := t.TempDir()
-	writeWallet(t, dir, DEFAULT_WALLET, WalletFile{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
-	writeWallet(t, dir, "secret", WalletFile{Name: "Secret", Accounts: []*Account{{
+	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: "My Wallet", Accounts: []*Account{{Name: "plain", Seed: "seed words", PrivateKey: "xprv-plain"}}})
+	writeWallet(t, dir, "secret", Wallet{Name: "Secret", Accounts: []*Account{{
 		Name: "enc", Locked: true,
 		Seed:       crypto.Encrypt("hunter2", "seed words", testIV),
 		PrivateKey: crypto.Encrypt("hunter2", "xprv-secret", testIV),
@@ -45,6 +45,34 @@ func TestListAndGet(t *testing.T) {
 	}
 	if manager.Read(nil, "secret") == nil || manager.Read(nil, "missing") != nil {
 		t.Fatal("Get returned the wrong result")
+	}
+}
+
+// lbry-sdk keeps an empty wallet name as-is; the id is the file name. The list
+// is ordered by id, not by the name in the file.
+func TestLoadNameAndSorting(t *testing.T) {
+	dir := t.TempDir()
+	writeWallet(t, dir, "b", Wallet{Name: "Alpha"})
+	writeWallet(t, dir, "a", Wallet{Name: ""})
+	writeWallet(t, dir, "c", Wallet{Name: "Beta"})
+
+	manager := NewDefaultWalletManager(dir)
+	if err := manager.(*DefaultWalletManager).Load(); err != nil {
+		t.Fatal(err)
+	}
+
+	list := manager.ReadList(nil)
+	if len(list) != 3 {
+		t.Fatalf("unexpected list: %+v", list)
+	}
+	for i, want := range []struct{ id, name string }{
+		{"a", ""},
+		{"b", "Alpha"},
+		{"c", "Beta"},
+	} {
+		if list[i].ID != want.id || list[i].Name != want.name {
+			t.Errorf("wallet %d = %+v, want id %q and name %q", i, list[i], want.id, want.name)
+		}
 	}
 }
 
@@ -113,7 +141,7 @@ func TestUnlockDecryptsInPlaceAndLockEncryptsAgain(t *testing.T) {
 
 func TestUnlockIsAllOrNothing(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, "two", WalletFile{Name: "Two", Accounts: []*Account{
+	writeWallet(t, dir, "two", Wallet{Name: "Two", Accounts: []*Account{
 		{Locked: true, Seed: crypto.Encrypt("pw", "seed one", testIV), PrivateKey: crypto.Encrypt("pw", "key one", testIV)},
 		{Locked: true, Seed: crypto.Encrypt("other", "seed two", testIV), PrivateKey: crypto.Encrypt("other", "key two", testIV)},
 	}})
@@ -142,7 +170,7 @@ func TestUnencryptedAndMissingWallets(t *testing.T) {
 
 func TestNewDefaultWalletManagerReadsNothingUntilLoad(t *testing.T) {
 	dir := t.TempDir()
-	writeWallet(t, dir, DEFAULT_WALLET, WalletFile{Name: "My Wallet"})
+	writeWallet(t, dir, DEFAULT_WALLET, Wallet{Name: "My Wallet"})
 	manager := NewDefaultWalletManager(dir)
 	if len(manager.ReadList(nil)) != 0 {
 		t.Fatal("NewDefaultWalletManager must not read the directory")
