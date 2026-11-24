@@ -55,6 +55,7 @@ func (walletManager *DefaultWalletManager) Load() error {
 		}
 		wallets = append(wallets, wallet)
 	}
+	walletManager.wallets = wallets
 	return nil
 }
 
