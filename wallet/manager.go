@@ -54,6 +54,12 @@ func (walletManager *DefaultWalletManager) Load() error {
 			name := "Wallet"
 			wallet.Name = &name
 		}
+		for _, account := range wallet.Accounts {
+			err := account.CalculateID()
+			if err != nil {
+				continue
+			}
+		}
 		if wallet.Preferences == nil {
 			wallet.Preferences = map[string]*Preference{
 				"local": {},

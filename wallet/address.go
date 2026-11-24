@@ -79,21 +79,3 @@ func AddressFromPublicKey(publicKey []byte) string {
 	hash.Write(sha[:])
 	return base58CheckEncode(append([]byte{pubkeyAddressPrefix}, hash.Sum(nil)...))
 }
-
-// AddressFromExtendedPublicKey returns the address of an account's BIP32 extended public key (the `public_key`
-// field of a wallet account). lbry-sdk uses it as the account id.
-func AddressFromExtendedPublicKey(extended string) (string, error) {
-	payload, err := base58CheckDecode(extended)
-	if err != nil {
-		return "", err
-	}
-	// version(4) depth(1) parent fingerprint(4) child number(4) chain code(32) key(33)
-	if len(payload) != 78 || !bytes.Equal(payload[:4], extendedPublicKeyPrefix) {
-		return "", errors.New("not a LBRY extended public key")
-	}
-	key := payload[45:]
-	if key[0] != 0x02 && key[0] != 0x03 {
-		return "", errors.New("not a compressed public key")
-	}
-	return AddressFromPublicKey(key), nil
-}

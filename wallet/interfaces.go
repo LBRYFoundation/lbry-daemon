@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"lbry/daemon/auth"
@@ -87,6 +88,23 @@ type Account struct {
 	Certificates     map[string]json.RawMessage `json:"certificates,omitempty"`
 }
 
+func (account *Account) CalculateID() error {
+	payload, err := base58CheckDecode(account.PublicKey)
+	if err != nil {
+		return err
+	}
+	// version(4) depth(1) parent fingerprint(4) child number(4) chain code(32) key(33)
+	if len(payload) != 78 || !bytes.Equal(payload[:4], extendedPublicKeyPrefix) {
+		return errors.New("not a LBRY extended public key")
+	}
+	key := payload[45:]
+	if key[0] != 0x02 && key[0] != 0x03 {
+		return errors.New("not a compressed public key")
+	}
+	account.ID = AddressFromPublicKey(key)
+	return nil
+}
+
 type AddressGenerator struct {
 	Name      string                `json:"name"`
 	Change    AddressGeneratorChain `json:"change"`
@@ -160,8 +178,6 @@ func (preference *Preference) SetNewValue(value any) {
 	preference.TimeStamp = float64(time.Now().Unix())
 	preference.Value = value
 }
-
-//	id, _ := AddressFromExtendedPublicKey(account.PublicKey)
 
 // AddressGeneratorName is the generator lbry-sdk uses when a wallet does not name one.
 
