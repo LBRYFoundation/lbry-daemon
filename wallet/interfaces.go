@@ -5,6 +5,7 @@ import (
 	"errors"
 	"lbry/daemon/auth"
 	"lbry/daemon/crypto"
+	"sync"
 	"time"
 )
 
@@ -24,15 +25,17 @@ type WalletManager interface {
 	// Unlock(user *auth.User, id string, password string) bool
 }
 
+// lockState guards the lock state of every wallet (the accounts' secrets and the password). Wallets are plain
+// values that get copied and encoded, so it is not a field of one.
+var lockState sync.Mutex
+
 type Wallet struct {
 	ID          string                 `json:"-"`
 	Name        *string                `json:"name"`
 	Accounts    []*Account             `json:"accounts"`
 	Preferences map[string]*Preference `json:"preferences"`
 
-	locked    bool
-	encrypted bool   // lbry-sdk Wallet.is_encrypted: locked, or unlocked with a password
-	password  string // set while unlocked with a password, enables Lock
+	password string // set while unlocked with a password, enables Lock
 }
 
 func (wallet *Wallet) GetDefaultAccount() *Account {
@@ -42,22 +45,79 @@ func (wallet *Wallet) GetDefaultAccount() *Account {
 	return nil
 }
 
+// IsEncrypted is lbry-sdk's Wallet.is_encrypted: the wallet is locked, or unlocked with a password.
 func (wallet *Wallet) IsEncrypted() bool {
-	return wallet.encrypted
+	if wallet == nil {
+		return false
+	}
+	lockState.Lock()
+	defer lockState.Unlock()
+	return wallet.isLocked() || wallet.password != ""
 }
 
+// Lock encrypts every account again with the password the wallet was unlocked with. It fails for a wallet that
+// is not unlocked with a password (an unencrypted wallet has none) and for one that is already locked.
 func (wallet *Wallet) Lock() bool {
-	// NO-OP
-	return false
+	if wallet == nil {
+		return false
+	}
+	lockState.Lock()
+	defer lockState.Unlock()
+	if wallet.password == "" || wallet.isLocked() {
+		return false
+	}
+	for _, account := range wallet.Accounts {
+		if err := account.Lock(wallet.password); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
+// Unlock decrypts every account with the password, all or nothing: with a wrong password nothing changes. A
+// wallet that is not locked is already unlocked, so that succeeds without looking at the password.
 func (wallet *Wallet) Unlock(password string) bool {
-	// NO-OP
-	return false
+	if wallet == nil {
+		return false
+	}
+	lockState.Lock()
+	defer lockState.Unlock()
+	if !wallet.isLocked() {
+		return true
+	}
+	for _, account := range wallet.Accounts {
+		if account.Locked && !account.canUnlockWith(password) {
+			return false
+		}
+	}
+	for _, account := range wallet.Accounts {
+		if account.Locked {
+			if err := account.Unlock(password); err != nil {
+				return false
+			}
+		}
+	}
+	wallet.password = password
+	return true
 }
 
+// IsLocked is true while any account is still encrypted.
 func (wallet *Wallet) IsLocked() bool {
-	return wallet.locked
+	if wallet == nil {
+		return false
+	}
+	lockState.Lock()
+	defer lockState.Unlock()
+	return wallet.isLocked()
+}
+
+func (wallet *Wallet) isLocked() bool {
+	for _, account := range wallet.Accounts {
+		if account.Locked {
+			return true
+		}
+	}
+	return false
 }
 
 func (wallet *Wallet) IsSyncing() bool {
@@ -105,6 +165,19 @@ type AddressGenerator struct {
 type AddressGeneratorChain struct {
 	Gap                   uint64 `json:"gap"`
 	MaximumUsesPerAddress uint64 `json:"maximum_uses_per_address"`
+}
+
+// canUnlockWith tells whether the password decrypts the account's secrets, without changing it.
+func (account *Account) canUnlockWith(password string) bool {
+	for _, secret := range []string{account.Seed, account.PrivateKey} {
+		if secret == "" {
+			continue
+		}
+		if _, err := crypto.Decrypt(password, secret); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func (account *Account) Lock(password string) error {
