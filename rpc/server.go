@@ -815,6 +815,19 @@ func sendJSONToAddress(address string, data []byte) (map[string]any, error) {
 	return resp, nil
 }
 
+// addProtoValue stores a field's value, turning repeated fields (the same number again) into a list.
+func addProtoValue(m map[int]any, key int, val any) {
+	if existing, ok := m[key]; ok {
+		if slice, ok := existing.([]any); ok {
+			m[key] = append(slice, val)
+		} else {
+			m[key] = []any{existing, val}
+		}
+	} else {
+		m[key] = val
+	}
+}
+
 func DecodeRawProto(b []byte) (map[int]any, error) {
 	m := make(map[int]any)
 
@@ -837,6 +850,11 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 			val, consumed = protowire.ConsumeFixed64(b)
 		case protowire.BytesType:
 			val, consumed = protowire.ConsumeBytes(b)
+			if consumed >= 0 {
+				// The bytes are kept as they are, under the negative field number, because the nested
+				// reading below is a guess: a text field can parse as a message.
+				addProtoValue(m, -int(num), val)
+			}
 			// Recursive decode for nested messages
 			if sub, err := DecodeRawProto(val.([]byte)); err == nil && len(sub) > 0 {
 				val = sub
@@ -849,17 +867,7 @@ func DecodeRawProto(b []byte) (map[int]any, error) {
 		}
 		b = b[consumed:]
 
-		// Handle repeating fields (multiple same field number)
-		key := int(num) // <-- this fixes the compile error
-		if existing, ok := m[key]; ok {
-			if slice, ok := existing.([]any); ok {
-				m[key] = append(slice, val)
-			} else {
-				m[key] = []any{existing, val}
-			}
-		} else {
-			m[key] = val
-		}
+		addProtoValue(m, int(num), val)
 	}
 	return m, nil
 }

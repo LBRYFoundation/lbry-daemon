@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"log"
 	"math/rand"
 	"net/http"
 	"slices"
@@ -39,14 +40,23 @@ func hubClaimSearch(params any) ([]map[string]any, uint64, bool, error) {
 
 	txIDs := []string{}
 	if ok {
+		wanted := map[string]bool{}
+		want := func(txid string) {
+			if txid != "" && !wanted[txid] {
+				wanted[txid] = true
+				txIDs = append(txIDs, txid)
+			}
+		}
 		for _, claim := range claims {
 			claimMap := claim.(map[int]any)
 			txidValue, txidOk := claimMap[1]
 			if txidOk {
 				txidBytes := txidValue.([]byte)
 				slices.Reverse(txidBytes)
-				txIDs = append(txIDs, hex.EncodeToString(txidBytes))
+				want(hex.EncodeToString(txidBytes))
 			}
+			// The channel that signed the claim is read from its transaction too.
+			want(channelReferenceTxID(claimMap))
 		}
 	}
 
@@ -70,11 +80,25 @@ func hubClaimSearch(params any) ([]map[string]any, uint64, bool, error) {
 	items := []map[string]any{}
 	if ok {
 		for _, claim := range claims {
-			items = append(items, convertProtobufToClaim(claim.(map[int]any), transactionData))
+			if item := convertClaimSafely(claim.(map[int]any), transactionData); item != nil {
+				items = append(items, item)
+			}
 		}
 	}
 	totalItems, okTotal := (decodedProtobuf[3]).(uint64)
 	return items, totalItems, okTotal, nil
+}
+
+// convertClaimSafely converts one claim of a search, or returns nil and logs when its data is not what the
+// converter expects, so one odd claim cannot take the whole answer down.
+func convertClaimSafely(claim map[int]any, transactions map[string]any) (item map[string]any) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("Skipping a claim that could not be read: %v", recovered)
+			item = nil
+		}
+	}()
+	return convertProtobufToClaim(claim, transactions)
 }
 
 // stringList reads a parameter that is a string or a list of strings, like lbry-sdk's `--name=<name>...`.
