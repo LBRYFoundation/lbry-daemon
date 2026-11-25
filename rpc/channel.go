@@ -205,10 +205,42 @@ func handleJSONRPCMessageChannelList(rpcServer *RPCServer, w http.ResponseWriter
 		accounts = []*wallet.Account{account}
 	}
 
-	outputs, err := wallet.ClaimOutputs(rpcServer.hub, accounts, 0)
+	channels, err := ownedChannels(rpcServer.hub, accounts, names, claimIDs)
 	if err != nil {
-		sendErrorResponse(w, 502, "Could not list the claims with the wallet server: "+err.Error())
+		sendErrorResponse(w, 502, err.Error())
 		return
+	}
+	items := make([]map[string]any, 0, len(channels))
+	for _, channel := range channels {
+		items = append(items, channel.item)
+	}
+	// Newest first, as lbry-sdk lists outputs.
+	sort.SliceStable(items, func(i, j int) bool {
+		a, _ := items[i]["height"].(uint64)
+		b, _ := items[j]["height"].(uint64)
+		return a > b
+	})
+
+	result := Paginate(items, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap()
+	if noTotals {
+		delete(result, "total_items")
+		delete(result, "total_pages")
+	}
+	sendResultResponse(w, result)
+}
+
+// ownedChannel is a channel the wallet holds, as lbry-sdk's claim object, and the account that holds it.
+type ownedChannel struct {
+	item    map[string]any
+	account *wallet.Account
+}
+
+// ownedChannels finds the unspent channels of the accounts, optionally only those with the names or claim ids.
+// The wallet server knows which claims are channels, and has the details of the confirmed ones.
+func ownedChannels(hub wallet.Hub, accounts []*wallet.Account, names []string, claimIDs []string) ([]ownedChannel, error) {
+	outputs, err := wallet.ClaimOutputs(hub, accounts, 0)
+	if err != nil {
+		return nil, errors.New("Could not list the claims with the wallet server: " + err.Error())
 	}
 	type mine struct {
 		output  wallet.ClaimOutput
@@ -228,19 +260,26 @@ func handleJSONRPCMessageChannelList(rpcServer *RPCServer, w http.ResponseWriter
 		byID[claimID] = mine{output, claimID, name}
 	}
 
-	// The wallet server knows which of them are channels, and has the details of the confirmed ones.
-	items := []map[string]any{}
+	var channels []ownedChannel
 	for start := 0; start < len(ids); start += hubClaimSearchLimit {
 		chunk := ids[start:min(start+hubClaimSearchLimit, len(ids))]
 		found, _, _, err := hubClaimSearch(map[string]any{"claim_id": chunk, "claim_type": "channel", "page_size": len(chunk)})
 		if err != nil {
-			sendErrorResponse(w, 502, err.Error())
-			return
+			return nil, err
 		}
 		for _, item := range found {
 			claimID, _ := item["claim_id"].(string)
 			owned, has := byID[claimID]
 			if !has {
+				continue
+			}
+			var holder *wallet.Account
+			for _, account := range accounts {
+				if account.ID == owned.output.AccountID {
+					holder = account
+				}
+			}
+			if holder == nil {
 				continue
 			}
 			item["name"] = owned.name
@@ -249,25 +288,22 @@ func handleJSONRPCMessageChannelList(rpcServer *RPCServer, w http.ResponseWriter
 			item["address"] = owned.output.Address
 			item["is_spent"] = false
 			item["is_my_output"] = true
-			for _, account := range accounts {
-				if account.ID == owned.output.AccountID {
-					item["has_signing_key"] = account.HasKey(owned.output.Address)
-				}
+			// The key is found by the channel's public key, not by the address that holds the claim.
+			if key, _ := holder.ChannelPrivateKey(channelPublicKeyOf(item)); key != nil {
+				item["has_signing_key"] = true
+			} else {
+				item["has_signing_key"] = false
 			}
-			items = append(items, item)
+			channels = append(channels, ownedChannel{item, holder})
 		}
 	}
-	// Newest first, as lbry-sdk lists outputs.
-	sort.SliceStable(items, func(i, j int) bool {
-		a, _ := items[i]["height"].(uint64)
-		b, _ := items[j]["height"].(uint64)
-		return a > b
-	})
+	return channels, nil
+}
 
-	result := Paginate(items, uint(max(page, 0)), uint(max(pageSize, 0))).ToMap()
-	if noTotals {
-		delete(result, "total_items")
-		delete(result, "total_pages")
-	}
-	sendResultResponse(w, result)
+// channelPublicKeyOf is the public key a channel claim holds, from its `value`.
+func channelPublicKeyOf(item map[string]any) []byte {
+	value, _ := item["value"].(map[string]any)
+	text, _ := value["public_key"].(string)
+	key, _ := hex.DecodeString(text)
+	return key
 }

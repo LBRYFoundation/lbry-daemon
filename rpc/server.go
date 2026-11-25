@@ -719,16 +719,6 @@ func handleJSONRPCMessageChannelNew(rpcServer *RPCServer, w http.ResponseWriter,
 	sendErrorResponse(w, 404, "Command 'channel_new' has been deprecated. Use 'channel_create' for this.")
 }
 
-func handleJSONRPCMessageChannelSign(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
-	user, authenticated := rpcServer.authManager.ValidateUser(req)
-	if authenticated {
-		_ = user
-		sendErrorResponse(w, 501, "Commands that require having a wallet are not implemented for now.")
-		return
-	}
-	handleUnauthorized(w)
-}
-
 func handleJSONRPCMessageChannelUpdate(rpcServer *RPCServer, w http.ResponseWriter, req *http.Request, params any) {
 	user, authenticated := rpcServer.authManager.ValidateUser(req)
 	if authenticated {

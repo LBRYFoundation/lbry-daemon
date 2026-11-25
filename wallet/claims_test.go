@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	"encoding/json"
 	"testing"
 )
 
@@ -55,15 +54,5 @@ func TestClaimOutputsHubFailuresAreErrors(t *testing.T) {
 	}
 	if _, err := ClaimOutputs(&fakeHub{}, []*Account{{PublicKey: publicKeyG}}, 2); err != ErrUnsupportedConfirmations {
 		t.Errorf("confirmations above 1: %v", err)
-	}
-}
-
-func TestAccountHasKey(t *testing.T) {
-	account := Account{Certificates: map[string]json.RawMessage{"bAddress": json.RawMessage(`"pem"`)}}
-	if !account.HasKey("bAddress") || account.HasKey("bOther") {
-		t.Error("a key is held for the address it is stored under")
-	}
-	if (&Account{}).HasKey("bAddress") {
-		t.Error("no certificates, no keys")
 	}
 }

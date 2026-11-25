@@ -152,3 +152,22 @@ func TestConvertProtobufToClaimReadsTextThatLooksLikeAMessage(t *testing.T) {
 		t.Errorf("author %v", value["author"])
 	}
 }
+
+// A channel claim shows the public key it signs with, which is how the wallet finds the private key.
+func TestConvertProtobufToClaimShowsTheChannelPublicKey(t *testing.T) {
+	publicKey, _ := hex.DecodeString("02c9f0f75acebc5419d784b3f66f87e37464c8fbe63bbdda98f86d18a534711e67")
+	channel := append([]byte{0x0a, byte(len(publicKey))}, publicKey...)
+	data := append([]byte{0, 0x12, byte(len(channel))}, channel...)
+
+	// As the handlers pass it: reversed in place, so it is the txid as written.
+	txid := make([]byte, 32)
+	txid[0] = 7
+	displayed := hex.EncodeToString(txid)
+	transactions := map[string]any{displayed: []any{claimTransaction(t, "@creator", data), map[string]any{}}}
+
+	claim := convertProtobufToClaim(map[int]any{1: txid}, transactions)
+	value, _ := claim["value"].(map[string]any)
+	if claim["value_type"] != "channel" || value["public_key"] != hex.EncodeToString(publicKey) {
+		t.Fatalf("value_type %v, value %v", claim["value_type"], value)
+	}
+}

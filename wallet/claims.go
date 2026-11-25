@@ -65,10 +65,3 @@ func ClaimOutputs(hub Hub, accounts []*Account, confirmations int) ([]ClaimOutpu
 	}
 	return claims, nil
 }
-
-// HasKey tells whether the account holds the private key of the channel at the address, which is what lbry-sdk's
-// has_signing_key reports.
-func (account *Account) HasKey(address string) bool {
-	_, has := account.Certificates[address]
-	return has
-}

@@ -256,6 +256,12 @@ func convertProtobufToClaim(protobuf map[int]any, transactions map[string]any) m
 	_, hasClaimTypeChannel := decodedProtobufClaimData[2]
 	if hasClaimTypeChannel {
 		claim["value_type"] = "channel"
+		// The key the channel signs with, which is also how the wallet finds the private key.
+		if channel, ok := decodedProtobufClaimData[2].(map[int]any); ok {
+			if publicKey, ok := protoBytes(channel, 1); ok {
+				claimValue["public_key"] = hex.EncodeToString(publicKey)
+			}
+		}
 	}
 	_, hasClaimTypeCollection := decodedProtobufClaimData[3]
 	if hasClaimTypeCollection {
