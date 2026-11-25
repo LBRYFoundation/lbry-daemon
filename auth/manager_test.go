@@ -67,3 +67,35 @@ func TestAdminIsAlsoAUser(t *testing.T) {
 		t.Fatal("a valid admin must be a valid user")
 	}
 }
+
+func TestNewAuthManagerNeedsBothCredentials(t *testing.T) {
+	for _, tc := range []struct{ name, user, pass string }{
+		{"neither", "", ""},
+		{"only a user", "admin", ""},
+		{"only a password", "", "s3cret"},
+	} {
+		t.Setenv("ADMIN_USERNAME", tc.user)
+		t.Setenv("ADMIN_PASSWORD", tc.pass)
+		manager, authenticated := NewAuthManager()
+		if authenticated {
+			t.Errorf("%s: authentication must stay off", tc.name)
+		}
+		if _, ok := manager.ValidateAdminUser(request()); !ok {
+			t.Errorf("%s: the open manager accepts every request", tc.name)
+		}
+	}
+
+	withAdmin(t)
+	manager, authenticated := NewAuthManager()
+	if !authenticated {
+		t.Fatal("authentication must be on when both are set")
+	}
+	if _, ok := manager.ValidateUser(request()); ok {
+		t.Fatal("a request without credentials must be rejected")
+	}
+	req := request()
+	req.SetBasicAuth("admin", "s3cret")
+	if _, ok := manager.ValidateUser(req); !ok {
+		t.Fatal("the right credentials must be accepted")
+	}
+}

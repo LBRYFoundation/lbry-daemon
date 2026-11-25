@@ -24,7 +24,12 @@ func main() {
 	node, _ := dht.NewNode(4444)
 	//blob.NewManager(node)
 
-	authManager := auth.NewDefaultAuthManager()
+	authManager, authenticated := auth.NewAuthManager()
+	if authenticated {
+		fmt.Println("Requests need the admin credentials (ADMIN_USERNAME and ADMIN_PASSWORD).")
+	} else {
+		fmt.Println("WARNING: ADMIN_USERNAME and ADMIN_PASSWORD are not set, so every request is accepted.")
+	}
 
 	blobManager := &blob.BlobManager{
 		Blobs: map[string][]byte{},

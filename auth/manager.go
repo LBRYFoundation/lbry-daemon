@@ -16,6 +16,15 @@ type UserAuthManager struct{}
 
 var _ AuthManager = (*UserAuthManager)(nil)
 
+// NewAuthManager checks every request against the admin credentials in the environment when both are set, and
+// accepts every request when they are not (the open manager, for development). The second result tells which.
+func NewAuthManager() (AuthManager, bool) {
+	if environment.AdminUsername() != "" && environment.AdminPassword() != "" {
+		return &UserAuthManager{}, true
+	}
+	return NewDefaultAuthManager(), false
+}
+
 func NewDefaultAuthManager() AuthManager {
 	return &DefaultAuthManager{}
 }
